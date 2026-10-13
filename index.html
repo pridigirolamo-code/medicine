@@ -98,7 +98,7 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
   <p class="muted" id="medicine-vuota" hidden>Non hai ancora segnato nessuna medicina. Aggiungi la prima qui sotto.</p>
 
   <form class="panel" id="medicine-form">
-    <h2>Aggiungi una medicina</h2>
+    <h2 id="form-titolo">Aggiungi una medicina</h2>
     <div><label for="med-nome">Come si chiama?</label><input type="text" id="med-nome" placeholder="Per esempio: Cardioaspirina" required></div>
     <div><label for="med-tipo">Che tipo è?</label>
       <select id="med-tipo">
@@ -119,6 +119,7 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
       <div><label for="med-ora3">Terzo orario (se serve)</label><input type="time" id="med-ora3"></div>
     </div>
     <button class="btn" type="submit">Salva</button>
+    <button class="btn ghost" type="button" id="med-annulla" hidden>Annulla</button>
   </form>
 
   <p class="foot">Gli avvisi arrivano quando questa pagina è aperta sul telefono. Per riceverli anche con l'app chiusa, premi «Metti nel calendario» accanto alla medicina. Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.</p>
@@ -179,18 +180,16 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
       d.textContent = (r === 1 ? 'Ti resta ' : 'Ti restano ') + quante(m, r) + '. ' + durata(m) + '.';
       corpo.appendChild(n); corpo.appendChild(o); corpo.appendChild(d);
       var nuova = document.createElement('button'); nuova.type = 'button'; nuova.className = 'btn ghost small'; nuova.textContent = 'Ho la scatola nuova';
-      nuova.addEventListener('click', function () {
-        $('med-nome').value = m.nome; $('med-tipo').value = m.tipo; $('med-algiorno').value = m.alGiorno; $('med-rimaste').value = '';
-        ORARI.forEach(function (id, i) { $(id).value = m.orari[i] || ''; });
-        $('medicine-form').scrollIntoView({ block: 'nearest' }); $('med-rimaste').focus();
-        avviso('Scrivi quante ne hai adesso, poi premi Salva.');
-      });
+      nuova.addEventListener('click', function () { apriModifica(m, true); });
+      var cambia = document.createElement('button'); cambia.type = 'button'; cambia.className = 'btn ghost small'; cambia.textContent = 'Modifica';
+      cambia.addEventListener('click', function () { apriModifica(m, false); });
       var t = document.createElement('button'); t.type = 'button'; t.className = 'btn ghost small'; t.textContent = 'Togli';
       t.addEventListener('click', function () {
+        if (inModifica === m) chiudiModifica();
         medicine = medicine.filter(function (x) { return x !== m; }); salva();
         avviso(m.calendario ? 'Medicina tolta. Toglila anche dal calendario del telefono.' : 'Medicina tolta.', function () { medicine.push(m); salva(); });
       });
-      li.appendChild(corpo); li.appendChild(nuova);
+      li.appendChild(corpo); li.appendChild(cambia); li.appendChild(nuova);
       if (m.orari.length) {
         var c = document.createElement('button'); c.type = 'button'; c.className = 'btn ghost small'; c.textContent = 'Metti nel calendario';
         c.addEventListener('click', function () { scaricaCalendario(m); });
@@ -205,15 +204,39 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
     $('scorte-testo').textContent = poche.map(function (m) { return m.nome + ': ' + durata(m).toLowerCase() + '.'; }).join(' ') + ' ' + CONSIGLIO;
   }
 
+  // «Modifica» e «Ho la scatola nuova» riempiono il modulo con la medicina scelta; Salva la sostituisce.
+  var inModifica = null;
+  function apriModifica(m, scatolaNuova) {
+    inModifica = m;
+    $('med-nome').value = m.nome; $('med-tipo').value = m.tipo; $('med-algiorno').value = m.alGiorno;
+    $('med-rimaste').value = scatolaNuova ? '' : Math.round(restano(m) * 100) / 100;
+    ORARI.forEach(function (id, i) { $(id).value = m.orari[i] || ''; });
+    $('form-titolo').textContent = 'Modifica la medicina'; $('med-annulla').hidden = false;
+    $('medicine-form').scrollIntoView({ block: 'start' });
+    if (scatolaNuova) { $('med-rimaste').focus(); avviso('Scrivi quante ne hai adesso, poi premi Salva.'); }
+    else avviso('Cambia quello che serve, poi premi Salva.');
+  }
+  function chiudiModifica() {
+    inModifica = null; $('medicine-form').reset();
+    $('form-titolo').textContent = 'Aggiungi una medicina'; $('med-annulla').hidden = true;
+  }
+  $('med-annulla').addEventListener('click', function () { chiudiModifica(); window.scrollTo(0, 0); });
+
   $('medicine-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var nome = $('med-nome').value.trim(), alGiorno = +$('med-algiorno').value, rimaste = +$('med-rimaste').value;
     if (!nome || !(alGiorno > 0) || !(rimaste >= 0)) { avviso('Controlla i numeri che hai scritto.'); return; }
     var orari = ORARI.map(function (id) { return $(id).value; }).filter(function (o, i, tutti) { return o && tutti.indexOf(o) === i; }).sort();
     // Stesso nome: aggiorno la medicina che c'è già invece di farne una doppia.
-    medicine = medicine.filter(function (m) { return m.nome.toLowerCase() !== nome.toLowerCase(); });
-    medicine.push({ id: Date.now(), nome: nome, tipo: $('med-tipo').value, alGiorno: alGiorno, rimaste: rimaste, dal: iso(new Date()), orari: orari, dalleOre: oraAdesso() });
-    this.reset(); avviso('Medicina salvata.'); salva(); window.scrollTo(0, 0);
+    var stessoNome = medicine.filter(function (m) { return m.nome.toLowerCase() === nome.toLowerCase(); })[0], vecchia = inModifica || stessoNome;
+    medicine = medicine.filter(function (m) { return m !== inModifica && m !== stessoNome; });
+    // Tengo lo stesso identificativo, così le dosi già segnate oggi restano segnate.
+    medicine.push({ id: vecchia ? vecchia.id : Date.now(), nome: nome, tipo: $('med-tipo').value, alGiorno: alGiorno, rimaste: rimaste,
+      dal: iso(new Date()), orari: orari, dalleOre: oraAdesso(), calendario: !!(vecchia && vecchia.calendario) });
+    var daAggiornare = vecchia && vecchia.calendario && (vecchia.nome !== nome || vecchia.orari.join() !== orari.join() || vecchia.alGiorno !== alGiorno);
+    chiudiModifica(); window.scrollTo(0, 0);
+    avviso(daAggiornare ? 'Medicina salvata. Aggiorna anche il promemoria nel calendario del telefono.' : 'Medicina salvata.');
+    salva();
     // Il permesso serve per far comparire l'avviso anche quando la pagina non è in primo piano.
     try { if (orari.length && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (err) {}
   });
