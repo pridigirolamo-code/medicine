@@ -121,7 +121,7 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
     <button class="btn" type="submit">Salva</button>
   </form>
 
-  <p class="foot">Gli avvisi arrivano quando questa pagina è aperta sul telefono. Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.</p>
+  <p class="foot">Gli avvisi arrivano quando questa pagina è aperta sul telefono. Per riceverli anche con l'app chiusa, premi «Metti nel calendario» accanto alla medicina. Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.</p>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toast-testo"></span><button type="button" id="toast-annulla" hidden>Annulla</button></div>
@@ -188,9 +188,15 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
       var t = document.createElement('button'); t.type = 'button'; t.className = 'btn ghost small'; t.textContent = 'Togli';
       t.addEventListener('click', function () {
         medicine = medicine.filter(function (x) { return x !== m; }); salva();
-        avviso('Medicina tolta.', function () { medicine.push(m); salva(); });
+        avviso(m.calendario ? 'Medicina tolta. Toglila anche dal calendario del telefono.' : 'Medicina tolta.', function () { medicine.push(m); salva(); });
       });
-      li.appendChild(corpo); li.appendChild(nuova); li.appendChild(t); ul.appendChild(li);
+      li.appendChild(corpo); li.appendChild(nuova);
+      if (m.orari.length) {
+        var c = document.createElement('button'); c.type = 'button'; c.className = 'btn ghost small'; c.textContent = 'Metti nel calendario';
+        c.addEventListener('click', function () { scaricaCalendario(m); });
+        li.appendChild(c);
+      }
+      li.appendChild(t); ul.appendChild(li);
     });
     $('medicine-vuota').hidden = medicine.length > 0;
 
@@ -211,6 +217,33 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
     // Il permesso serve per far comparire l'avviso anche quando la pagina non è in primo piano.
     try { if (orari.length && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (err) {}
   });
+
+  // --- calendario del telefono ---
+  // Con l'app chiusa gli avvisi non arrivano: per questo ogni medicina può diventare un promemoria giornaliero
+  // nel calendario del telefono, che suona da solo. Il file contiene un appuntamento per ogni orario.
+  function perCalendario(testo) { return String(testo).replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\n/g, '\\n'); }
+  function calendario(m) {
+    var oggi = iso(new Date()).replace(/-/g, ''), timbro = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    var dose = m.alGiorno / m.orari.length, righe = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Le mie medicine//IT', 'CALSCALE:GREGORIAN'];
+    m.orari.forEach(function (o, i) {
+      // Stesso identificativo a ogni salvataggio: rimettendola nel calendario il promemoria si aggiorna invece di raddoppiare.
+      righe.push('BEGIN:VEVENT', 'UID:' + encodeURIComponent(m.nome.toLowerCase()) + '-' + (i + 1) + '@le-mie-medicine', 'DTSTAMP:' + timbro,
+        'DTSTART:' + oggi + 'T' + o.replace(':', '') + '00', 'DURATION:PT5M', 'RRULE:FREQ=DAILY',
+        'SUMMARY:' + perCalendario('Medicina: ' + m.nome + ' (' + quante(m, dose) + ')'),
+        'DESCRIPTION:' + perCalendario('Apri «Le mie medicine» e premi «L\'ho presa».'),
+        'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + perCalendario('È ora di prendere: ' + m.nome), 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
+    });
+    return righe.concat('END:VCALENDAR').join('\r\n') + '\r\n';
+  }
+  function scaricaCalendario(m) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([calendario(m)], { type: 'text/calendar;charset=utf-8' }));
+    a.download = 'medicina-' + m.nome.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.ics';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 60000);
+    m.calendario = true; scrivi('lista', medicine);
+    avviso('Apri il file scaricato e conferma: il promemoria entra nel calendario.');
+  }
 
   // --- orari ---
   // Finché la pagina è aperta controllo ogni mezzo minuto se è arrivata l'ora di una medicina.
