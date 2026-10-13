@@ -15,18 +15,18 @@
 /* Layout: una sola schermata, una colonna larga come un telefono, tasti grandi. */
 :root {
   --bg: #EDF1F5; --surface: #FFFFFF; --ink: #10213A; --muted: #45546B; --line: #C5CFDB;
-  --pills: #0B6470; --warn: #8A5200; --warn-soft: #FFF0CC; --on-color: #FFFFFF;
+  --pills: #0B6470; --ok: #14663A; --warn: #8A5200; --warn-soft: #FFF0CC; --on-color: #FFFFFF;
   --display: "Lexend", "Trebuchet MS", Verdana, sans-serif;
   --body: "Atkinson Hyperlegible", Verdana, "Segoe UI", sans-serif;
   --radius: 18px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0E1622; --surface: #18222F; --ink: #F1F5FA; --muted: #B3C0D0; --line: #34445A;
-  --pills: #0F7A88; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
+  --pills: #0F7A88; --ok: #1E7F4A; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
   color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #0E1622; --surface: #18222F; --ink: #F1F5FA; --muted: #B3C0D0; --line: #34445A;
-  --pills: #0F7A88; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
+  --pills: #0F7A88; --ok: #1E7F4A; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
   color-scheme: dark }
 
 * { box-sizing: border-box }
@@ -48,12 +48,14 @@ button { cursor: pointer }
 .btn { border: 0; border-radius: var(--radius); padding: 18px 20px; min-height: 72px; font-weight: 700; font-size: 1.35rem;
   color: var(--on-color); background: var(--pills); width: 100%; text-align: center }
 .btn.ghost { background: var(--surface); color: var(--ink); border: 2px solid var(--line) }
+.btn.ok { background: var(--ok) }
+a.btn { display: grid; place-items: center; text-decoration: none }
 .btn.small { min-height: 56px; padding: 10px 16px; font-size: 1.1rem; width: auto }
 .pair { display: flex; gap: 12px; flex-wrap: wrap }
 .pair > * { flex: 1 1 200px }
 
 label { font-weight: 700; display: block; margin-bottom: 6px }
-input[type=text], input[type=number], input[type=time], select { width: 100%; background: var(--surface);
+input[type=text], input[type=tel], input[type=number], input[type=time], select { width: 100%; background: var(--surface);
   border: 2px solid var(--muted); border-radius: 14px; padding: 14px; min-height: 64px; font-size: 1.3rem }
 
 .panel { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 20px;
@@ -94,6 +96,12 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
     <p id="scorte-testo"></p>
   </div>
 
+  <div class="panel warn" id="famiglia-attesa" role="status" hidden>
+    <span class="tag">Famiglia</span>
+    <p>C'è un avviso pronto per la tua famiglia. Premi il tasto verde, poi premi «Invia» su WhatsApp.</p>
+    <a class="btn ok" id="famiglia-manda" target="_blank" rel="noopener">Manda su WhatsApp</a>
+  </div>
+
   <ul class="list" id="medicine-lista"></ul>
   <p class="muted" id="medicine-vuota" hidden>Non hai ancora segnato nessuna medicina. Aggiungi la prima qui sotto.</p>
 
@@ -122,6 +130,13 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
     <button class="btn ghost" type="button" id="med-annulla" hidden>Annulla</button>
   </form>
 
+  <form class="panel" id="famiglia-form">
+    <h2>Avvisi alla famiglia</h2>
+    <p class="muted" id="famiglia-stato"></p>
+    <div><label for="fam-numero">Numero WhatsApp di un familiare</label><input type="tel" id="fam-numero" autocomplete="off" placeholder="Per esempio: 333 123 4567"></div>
+    <button class="btn" type="submit">Salva il numero</button>
+  </form>
+
   <p class="foot">Gli avvisi arrivano quando questa pagina è aperta sul telefono. Per riceverli anche con l'app chiusa, premi «Metti nel calendario» accanto alla medicina. Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.</p>
 </div>
 
@@ -141,6 +156,7 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
   function scrivi(chiave, v) { try { localStorage.setItem('medicine.' + chiave, JSON.stringify(v)); } catch (e) {} }
 
   function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function minuti(o) { var p = o.split(':'); return +p[0] * 60 + +p[1]; }
   function oraAdesso() { var d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
   function giorniDa(isoData) {
     var p = isoData.split('-'), o = new Date();
@@ -154,6 +170,38 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
     clearTimeout(toastTimer); toastTimer = setTimeout(function () { $('toast').hidden = true; }, undo ? 8000 : 4000);
   }
   $('toast-annulla').addEventListener('click', function () { if (annulla) annulla(); $('toast').hidden = true; });
+
+  // --- famiglia ---
+  // Facoltativo. L'app non può spedire messaggi da sola: prepara il testo e la persona lo manda dal proprio WhatsApp con un tasto.
+  var RITARDO = 30, FIRMA = ' (Messaggio da «Le mie medicine»)';
+  var daMandare = leggi('da-mandare', []);
+  function numeroFamiglia() { return leggi('famiglia', ''); }
+  function pulisciNumero(testo) {
+    var n = String(testo).replace(/\D/g, '').replace(/^00/, '');
+    if (/^3\d{8,9}$/.test(n)) n = '39' + n; // cellulare italiano scritto senza prefisso
+    return /^\d{8,15}$/.test(n) ? n : '';
+  }
+  function disegnaFamiglia() {
+    var n = numeroFamiglia();
+    $('famiglia-stato').textContent = n ? 'Gli avvisi vanno al numero +' + n + '. Per spegnerli, cancella il numero e salva.'
+      : 'Facoltativo. Se scrivi un numero, preparo un messaggio WhatsApp quando una medicina sta per finire o dopo mezz\'ora che non è segnata come presa.';
+    if (document.activeElement !== $('fam-numero')) $('fam-numero').value = n ? '+' + n : '';
+    $('famiglia-attesa').hidden = !n || !daMandare.length;
+    $('famiglia-manda').href = 'https://wa.me/' + n + '?text=' + encodeURIComponent(daMandare.join('\n'));
+  }
+  function avvisaFamiglia(testo) {
+    daMandare.push(testo + FIRMA); scrivi('da-mandare', daMandare); disegnaFamiglia();
+    avviso('Premi «Manda su WhatsApp» per avvisare la tua famiglia.');
+  }
+  $('famiglia-manda').addEventListener('click', function () { daMandare = []; scrivi('da-mandare', daMandare); $('famiglia-attesa').hidden = true; });
+  $('famiglia-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var scritto = $('fam-numero').value.trim(), n = pulisciNumero(scritto);
+    if (scritto && !n) { avviso('Il numero non sembra giusto. Controllalo.'); return; }
+    scrivi('famiglia', n); $('fam-numero').blur();
+    if (!n) { daMandare = []; scrivi('da-mandare', daMandare); }
+    avviso(n ? 'Numero salvato.' : 'Avvisi alla famiglia spenti.'); giro();
+  });
 
   // --- scorte ---
   // Con gli orari la scorta scende solo quando si preme «L'ho presa»; senza orari il tasto non c'è e scende da sola ogni giorno.
@@ -202,6 +250,16 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
     var poche = medicine.filter(function (m) { return bastano(m) <= SOGLIA; });
     $('scorte-avviso').hidden = !poche.length;
     $('scorte-testo').textContent = poche.map(function (m) { return m.nome + ': ' + durata(m).toLowerCase() + '.'; }).join(' ') + ' ' + CONSIGLIO;
+
+    // La famiglia viene avvisata una volta sola per ogni medicina che sta per finire.
+    if (numeroFamiglia()) {
+      var dette = leggi('scorte-dette', []), nuove = poche.filter(function (m) { return dette.indexOf(m.id) < 0; });
+      scrivi('scorte-dette', poche.map(function (m) { return m.id; }));
+      if (nuove.length) avvisaFamiglia(nuove.map(function (m) {
+        return bastano(m) <= 0 ? 'È finita la medicina: ' + m.nome + '.' : 'Sta per finire la medicina: ' + m.nome + '. ' + durata(m) + '.';
+      }).join(' '));
+    }
+    disegnaFamiglia();
   }
 
   // «Modifica» e «Ho la scatola nuova» riempiono il modulo con la medicina scelta; Salva la sostituisce.
@@ -308,6 +366,15 @@ input[type=text], input[type=number], input[type=time], select { width: 100%; ba
       li.appendChild(corpo); li.appendChild(b); ul.appendChild(li);
     });
     $('dosi-avviso').hidden = !dosi.length;
+    // Dopo mezz'ora senza «L'ho presa» preparo l'avviso per la famiglia, una volta sola per ogni dose.
+    if (numeroFamiglia()) {
+      var adesso = minuti(oraAdesso()), giaDette = g.famiglia || [];
+      var saltate = dosi.filter(function (d) { return adesso - minuti(d.ora) >= RITARDO && giaDette.indexOf(d.chiave) < 0; });
+      if (saltate.length) {
+        g.famiglia = giaDette.concat(saltate.map(function (d) { return d.chiave; })); scrivi('dosi', g);
+        avvisaFamiglia('Medicina non segnata come presa: ' + saltate.map(function (d) { return d.m.nome + ' delle ore ' + d.ora; }).join(', ') + '.');
+      }
+    }
     var nuove = dosi.filter(function (d) { return g.dette.indexOf(d.chiave) < 0; });
     if (!nuove.length) return;
     g.dette = g.dette.concat(nuove.map(function (d) { return d.chiave; })); scrivi('dosi', g);
