@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B6470">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>:root{padding:env(safe-area-inset-top,0px) 0 env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>Le mie medicine</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;700&display=swap">
+<style>
+/* Layout: una sola schermata, una colonna larga come un telefono, tasti grandi. */
+:root {
+  --bg: #EDF1F5; --surface: #FFFFFF; --ink: #10213A; --muted: #45546B; --line: #C5CFDB;
+  --pills: #0B6470; --warn: #8A5200; --warn-soft: #FFF0CC; --on-color: #FFFFFF;
+  --display: "Lexend", "Trebuchet MS", Verdana, sans-serif;
+  --body: "Atkinson Hyperlegible", Verdana, "Segoe UI", sans-serif;
+  --radius: 18px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0E1622; --surface: #18222F; --ink: #F1F5FA; --muted: #B3C0D0; --line: #34445A;
+  --pills: #0F7A88; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0E1622; --surface: #18222F; --ink: #F1F5FA; --muted: #B3C0D0; --line: #34445A;
+  --pills: #0F7A88; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
+  color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 1.3rem; line-height: 1.45;
+  padding-inline: 16px; padding-block: 20px 40px }
+.app { max-width: 540px; margin-inline: auto; display: flex; flex-direction: column; gap: 20px }
+h1, h2 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; line-height: 1.15 }
+h1 { font-size: 2.2rem }
+h2 { font-size: 1.8rem }
+p { margin: 0 }
+.muted { color: var(--muted) }
+.today { font-size: 1.4rem; color: var(--muted) }
+.today::first-letter { text-transform: uppercase }
+
+button, input, select { font: inherit; color: inherit }
+button { cursor: pointer }
+:focus-visible { outline: 4px solid var(--ink); outline-offset: 3px }
+
+.btn { border: 0; border-radius: var(--radius); padding: 18px 20px; min-height: 72px; font-weight: 700; font-size: 1.35rem;
+  color: var(--on-color); background: var(--pills); width: 100%; text-align: center }
+.btn.ghost { background: var(--surface); color: var(--ink); border: 2px solid var(--line) }
+.btn.small { min-height: 56px; padding: 10px 16px; font-size: 1.1rem; width: auto }
+.pair { display: flex; gap: 12px; flex-wrap: wrap }
+.pair > * { flex: 1 1 200px }
+
+label { font-weight: 700; display: block; margin-bottom: 6px }
+input[type=text], input[type=number], input[type=time], select { width: 100%; background: var(--surface);
+  border: 2px solid var(--muted); border-radius: 14px; padding: 14px; min-height: 64px; font-size: 1.3rem }
+
+.panel { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 20px;
+  display: flex; flex-direction: column; gap: 14px }
+.panel.warn { background: var(--warn-soft); border-color: var(--warn) }
+.tag { font-size: 0.95rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700 }
+
+.list { display: flex; flex-direction: column; gap: 12px; list-style: none; margin: 0; padding: 0 }
+.item { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 16px;
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap }
+.item.warn { background: var(--warn-soft); border-color: var(--warn) }
+.item .body { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere }
+.item .name { font-family: var(--display); font-weight: 700 }
+.item .when { font-family: var(--display); font-weight: 700; color: var(--pills); font-variant-numeric: tabular-nums }
+
+.toast { position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 508px;
+  margin-inline: auto; background: var(--ink); color: var(--bg); border-radius: var(--radius); padding: 16px 20px;
+  display: flex; gap: 14px; align-items: center; justify-content: space-between; font-weight: 700 }
+.toast button { background: var(--bg); color: var(--ink); border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700 }
+.foot { font-size: 1rem; color: var(--muted); border-top: 2px solid var(--line); padding-top: 14px }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div>
+    <h1>Le mie medicine</h1>
+    <p class="today" id="oggi"></p>
+  </div>
+
+  <div class="panel warn" id="dosi-avviso" role="status" hidden>
+    <span class="tag">È ora della medicina</span>
+    <ul class="list" id="dosi-lista"></ul>
+  </div>
+
+  <div class="panel warn" id="scorte-avviso" role="status" hidden>
+    <span class="tag">Stanno per finire</span>
+    <p id="scorte-testo"></p>
+  </div>
+
+  <ul class="list" id="medicine-lista"></ul>
+  <p class="muted" id="medicine-vuota" hidden>Non hai ancora segnato nessuna medicina. Aggiungi la prima qui sotto.</p>
+
+  <form class="panel" id="medicine-form">
+    <h2>Aggiungi una medicina</h2>
+    <div><label for="med-nome">Come si chiama?</label><input type="text" id="med-nome" placeholder="Per esempio: Cardioaspirina" required></div>
+    <div><label for="med-tipo">Che tipo è?</label>
+      <select id="med-tipo">
+        <option value="pastiglie">Pastiglie</option>
+        <option value="capsule">Capsule</option>
+        <option value="gocce">Gocce</option>
+        <option value="bustine">Bustine</option>
+        <option value="fiale">Fiale</option>
+        <option value="altro">Altro</option>
+      </select></div>
+    <div class="pair">
+      <div><label for="med-algiorno">Quante ne prendi al giorno?</label><input type="number" id="med-algiorno" inputmode="decimal" min="0.5" step="0.5" required></div>
+      <div><label for="med-rimaste">Quante te ne restano?</label><input type="number" id="med-rimaste" inputmode="decimal" min="0" step="0.5" required></div>
+    </div>
+    <div class="pair">
+      <div><label for="med-ora1">A che ora la prendi?</label><input type="time" id="med-ora1"></div>
+      <div><label for="med-ora2">Secondo orario (se serve)</label><input type="time" id="med-ora2"></div>
+      <div><label for="med-ora3">Terzo orario (se serve)</label><input type="time" id="med-ora3"></div>
+    </div>
+    <button class="btn" type="submit">Salva</button>
+  </form>
+
+  <p class="foot">Gli avvisi arrivano quando questa pagina è aperta sul telefono. Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.</p>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toast-testo"></span><button type="button" id="toast-annulla" hidden>Annulla</button></div>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var GIORNO = 86400000, SOGLIA = 7;
+  var CONSIGLIO = 'Chiedi la ricetta al dottore o passa in farmacia.';
+  var TIPI = { pastiglie: ['pastiglia', 'pastiglie'], capsule: ['capsula', 'capsule'], gocce: ['goccia', 'gocce'],
+    bustine: ['bustina', 'bustine'], fiale: ['fiala', 'fiale'], altro: ['dose', 'dosi'] };
+  var ORARI = ['med-ora1', 'med-ora2', 'med-ora3'];
+
+  // --- memoria locale (solo su questo dispositivo) ---
+  function leggi(chiave, base) { try { var v = localStorage.getItem('medicine.' + chiave); return v ? JSON.parse(v) : base; } catch (e) { return base; } }
+  function scrivi(chiave, v) { try { localStorage.setItem('medicine.' + chiave, JSON.stringify(v)); } catch (e) {} }
+
+  function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function oraAdesso() { var d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+  function giorniDa(isoData) {
+    var p = isoData.split('-'), o = new Date();
+    return Math.max(0, Math.round((new Date(o.getFullYear(), o.getMonth(), o.getDate()) - new Date(+p[0], +p[1] - 1, +p[2])) / GIORNO));
+  }
+
+  // --- avvisi in basso ---
+  var toastTimer, annulla;
+  function avviso(testo, undo) {
+    $('toast-testo').textContent = testo; annulla = undo; $('toast-annulla').hidden = !undo; $('toast').hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { $('toast').hidden = true; }, undo ? 8000 : 4000);
+  }
+  $('toast-annulla').addEventListener('click', function () { if (annulla) annulla(); $('toast').hidden = true; });
+
+  // --- scorte ---
+  // Con gli orari la scorta scende solo quando si preme «L'ho presa»; senza orari il tasto non c'è e scende da sola ogni giorno.
+  var medicine = leggi('lista', []);
+  function contaDaSola(m) { return !(m.orari && m.orari.length); }
+  function restano(m) { return Math.max(0, contaDaSola(m) ? m.rimaste - m.alGiorno * giorniDa(m.dal) : m.rimaste); }
+  function bastano(m) { return Math.floor(restano(m) / m.alGiorno + 1e-6); }
+  function numero(n) { return String(Math.round(n * 100) / 100).replace('.', ','); }
+  function quante(m, n) { return numero(n) + ' ' + (TIPI[m.tipo] || TIPI.altro)[n === 1 ? 0 : 1]; }
+  function durata(m) { var g = bastano(m); return g <= 0 ? 'È finita' : g === 1 ? 'Basta per 1 giorno' : 'Basta per ' + g + ' giorni'; }
+  function salva() { scrivi('lista', medicine); disegna(); controllaDosi(); }
+
+  function disegna() {
+    $('oggi').textContent = 'Oggi è ' + new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+    var ul = $('medicine-lista'); ul.textContent = '';
+    medicine.sort(function (a, b) { return bastano(a) - bastano(b); });
+    medicine.forEach(function (m) {
+      var r = restano(m), li = document.createElement('li'); li.className = 'item' + (bastano(m) <= SOGLIA ? ' warn' : '');
+      var corpo = document.createElement('div'); corpo.className = 'body';
+      var n = document.createElement('div'); n.className = 'name'; n.textContent = m.nome;
+      var o = document.createElement('div'); o.className = 'when';
+      o.textContent = quante(m, m.alGiorno) + ' al giorno' + (m.orari.length ? ', ore ' + m.orari.join(', ') : '');
+      var d = document.createElement('div');
+      d.textContent = (r === 1 ? 'Ti resta ' : 'Ti restano ') + quante(m, r) + '. ' + durata(m) + '.';
+      corpo.appendChild(n); corpo.appendChild(o); corpo.appendChild(d);
+      var nuova = document.createElement('button'); nuova.type = 'button'; nuova.className = 'btn ghost small'; nuova.textContent = 'Ho la scatola nuova';
+      nuova.addEventListener('click', function () {
+        $('med-nome').value = m.nome; $('med-tipo').value = m.tipo; $('med-algiorno').value = m.alGiorno; $('med-rimaste').value = '';
+        ORARI.forEach(function (id, i) { $(id).value = m.orari[i] || ''; });
+        $('medicine-form').scrollIntoView({ block: 'nearest' }); $('med-rimaste').focus();
+        avviso('Scrivi quante ne hai adesso, poi premi Salva.');
+      });
+      var t = document.createElement('button'); t.type = 'button'; t.className = 'btn ghost small'; t.textContent = 'Togli';
+      t.addEventListener('click', function () {
+        medicine = medicine.filter(function (x) { return x !== m; }); salva();
+        avviso('Medicina tolta.', function () { medicine.push(m); salva(); });
+      });
+      li.appendChild(corpo); li.appendChild(nuova); li.appendChild(t); ul.appendChild(li);
+    });
+    $('medicine-vuota').hidden = medicine.length > 0;
+
+    var poche = medicine.filter(function (m) { return bastano(m) <= SOGLIA; });
+    $('scorte-avviso').hidden = !poche.length;
+    $('scorte-testo').textContent = poche.map(function (m) { return m.nome + ': ' + durata(m).toLowerCase() + '.'; }).join(' ') + ' ' + CONSIGLIO;
+  }
+
+  $('medicine-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var nome = $('med-nome').value.trim(), alGiorno = +$('med-algiorno').value, rimaste = +$('med-rimaste').value;
+    if (!nome || !(alGiorno > 0) || !(rimaste >= 0)) { avviso('Controlla i numeri che hai scritto.'); return; }
+    var orari = ORARI.map(function (id) { return $(id).value; }).filter(function (o, i, tutti) { return o && tutti.indexOf(o) === i; }).sort();
+    // Stesso nome: aggiorno la medicina che c'è già invece di farne una doppia.
+    medicine = medicine.filter(function (m) { return m.nome.toLowerCase() !== nome.toLowerCase(); });
+    medicine.push({ id: Date.now(), nome: nome, tipo: $('med-tipo').value, alGiorno: alGiorno, rimaste: rimaste, dal: iso(new Date()), orari: orari, dalleOre: oraAdesso() });
+    this.reset(); avviso('Medicina salvata.'); salva(); window.scrollTo(0, 0);
+    // Il permesso serve per far comparire l'avviso anche quando la pagina non è in primo piano.
+    try { if (orari.length && 'Notification' in window && Notification.permission === 'default') Notification.requestPermission(); } catch (err) {}
+  });
+
+  // --- orari ---
+  // Finché la pagina è aperta controllo ogni mezzo minuto se è arrivata l'ora di una medicina.
+  // Ogni dose resta in cima finché la persona non preme «L'ho presa».
+  function giornata() { var g = leggi('dosi', null), oggi = iso(new Date()); return g && g.giorno === oggi ? g : { giorno: oggi, fatte: [], dette: [] }; }
+  function dosiDaPrendere() {
+    var g = giornata(), adesso = oraAdesso(), oggi = iso(new Date()), dosi = [];
+    medicine.forEach(function (m) {
+      m.orari.forEach(function (o) {
+        // Gli orari già passati quando la medicina è stata segnata non contano.
+        if (o > adesso || (m.dal === oggi && o < m.dalleOre)) return;
+        if (g.fatte.indexOf(m.id + '|' + o) < 0) dosi.push({ m: m, ora: o, chiave: m.id + '|' + o });
+      });
+    });
+    return dosi.sort(function (a, b) { return a.ora.localeCompare(b.ora); });
+  }
+  function notifica(testo) {
+    if (!('Notification' in window) || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return;
+    navigator.serviceWorker.ready.then(function (r) {
+      return r.showNotification('Le mie medicine', { body: testo, icon: 'icon-192.png', tag: 'medicina', renotify: true });
+    }).catch(function () {});
+  }
+  function controllaDosi() {
+    var g = giornata(), dosi = dosiDaPrendere(), ul = $('dosi-lista'); ul.textContent = '';
+    dosi.forEach(function (d) {
+      var dose = d.m.alGiorno / d.m.orari.length;
+      var li = document.createElement('li'); li.className = 'item';
+      var corpo = document.createElement('div'); corpo.className = 'body';
+      var n = document.createElement('div'); n.className = 'name'; n.textContent = d.m.nome;
+      var o = document.createElement('div'); o.textContent = 'Ore ' + d.ora + ': ' + quante(d.m, dose);
+      corpo.appendChild(n); corpo.appendChild(o);
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = 'L\'ho presa';
+      b.addEventListener('click', function () {
+        var oggi = giornata(); oggi.fatte.push(d.chiave); scrivi('dosi', oggi);
+        // Ogni dose presa toglie dalla scorta la sua parte della quantità giornaliera.
+        d.m.rimaste = Math.max(0, d.m.rimaste - dose);
+        salva(); avviso('Bene, l\'ho segnato.');
+      });
+      li.appendChild(corpo); li.appendChild(b); ul.appendChild(li);
+    });
+    $('dosi-avviso').hidden = !dosi.length;
+    var nuove = dosi.filter(function (d) { return g.dette.indexOf(d.chiave) < 0; });
+    if (!nuove.length) return;
+    g.dette = g.dette.concat(nuove.map(function (d) { return d.chiave; })); scrivi('dosi', g);
+    var testo = 'È ora di prendere: ' + nuove.map(function (d) { return d.m.nome; }).filter(function (n, i, tutti) { return tutti.indexOf(n) === i; }).join(', ') + '.';
+    avviso(testo); notifica(testo);
+    try { if (navigator.vibrate) navigator.vibrate([300, 150, 300]); } catch (e) {}
+    try { var u = new SpeechSynthesisUtterance(testo); u.lang = 'it-IT'; u.rate = 0.9; speechSynthesis.speak(u); } catch (e) {}
+  }
+  function giro() { disegna(); controllaDosi(); }
+  setInterval(giro, 30000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) giro(); });
+
+  giro();
+})();
+</script>
+
+<script>if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});</script>
+</body>
+</html>
