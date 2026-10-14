@@ -102,7 +102,9 @@ textarea { resize: vertical }
 .item.dose .btn, .item.riga .btn { flex: none }
 .tasti-dose { display: flex; flex-direction: column; gap: 4px; flex: none }
 .diario-giorno { font-weight: 700; font-size: 0.95rem; margin-top: 4px }
-.diario-riga { display: flex; justify-content: space-between; gap: 8px; font-size: 0.95rem; padding: 2px 0; border-bottom: 1px solid var(--line) }
+.diario-riga { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.95rem; padding: 2px 0; border-bottom: 1px solid var(--line) }
+.diario-dx { display: flex; align-items: center; gap: 6px }
+.togli-riga { background: none; border: 1.5px solid var(--line); border-radius: 999px; width: 30px; height: 30px; font-size: 1.1rem; line-height: 1; color: var(--muted); flex: none }
 .esito-presa { color: var(--ok); font-weight: 700 } .esito-saltata { color: var(--muted); font-weight: 700 } .esito-dimenticata { color: var(--warn); font-weight: 700 }
 /* Tasti di ogni medicina: una riga sola sotto le scritte */
 .azioni { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; width: 100% }
@@ -201,7 +203,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 27</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 28</p>
 </section>
 
 <!-- ELENCO -->
@@ -943,7 +945,20 @@ textarea { resize: vertical }
     return diario.filter(function (e) { return e.g >= limite; })
       .sort(function (a, b) { return b.g.localeCompare(a.g) || a.ora.localeCompare(b.ora) || a.nome.localeCompare(b.nome); });
   }
+  // Le dosi di oggi segnate prima che esistesse il diario (o mai annotate) le ricavo dall'elenco di quelle fatte:
+  // le aggiungo come prese, senza l'ora esatta che non era stata salvata.
+  function completaOggi() {
+    var g = giornata(), aggiunte = 0;
+    g.fatte.forEach(function (k) {
+      if (diario.some(function (e) { return e.g === g.giorno && e.k === k; })) return;
+      var p = k.split('|'), m = medicine.filter(function (x) { return String(x.id) === p[0]; })[0];
+      if (!m) return;
+      diario.push({ g: g.giorno, k: k, nome: m.nome, ora: p[1], esito: 'presa', alle: '' }); aggiunte++;
+    });
+    if (aggiunte) scrivi('diario', diario);
+  }
   function disegnaDiario() {
+    completaOggi();
     var ul = $('diario-lista'), voci = vociDiario(), giorno = ''; ul.textContent = '';
     voci.forEach(function (e) {
       if (e.g !== giorno) {
@@ -955,7 +970,15 @@ textarea { resize: vertical }
       var li = document.createElement('li'); li.className = 'diario-riga';
       var sx = document.createElement('span'); sx.textContent = e.ora + ' ' + e.nome;
       var dx = document.createElement('span'); dx.className = 'esito-' + e.esito; dx.textContent = esitoTesto(e);
-      li.appendChild(sx); li.appendChild(dx); ul.appendChild(li);
+      // × per togliere una riga (per esempio le prove), con Annulla.
+      var x = document.createElement('button'); x.type = 'button'; x.className = 'togli-riga'; x.textContent = '×';
+      x.setAttribute('aria-label', 'Togli dal diario: ' + e.nome + ' delle ' + e.ora);
+      x.addEventListener('click', function () {
+        diario = diario.filter(function (y) { return y !== e; }); scrivi('diario', diario); disegnaDiario();
+        avviso('Riga tolta dal diario.', function () { diario.push(e); scrivi('diario', diario); disegnaDiario(); });
+      });
+      var dxBox = document.createElement('span'); dxBox.className = 'diario-dx'; dxBox.appendChild(dx); dxBox.appendChild(x);
+      li.appendChild(sx); li.appendChild(dxBox); ul.appendChild(li);
     });
     $('diario-vuoto').hidden = voci.length > 0; $('diario-condividi').hidden = !voci.length;
   }
