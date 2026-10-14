@@ -51,6 +51,7 @@ button { cursor: pointer }
 .btn.ok { background: var(--ok) }
 a.btn { display: grid; place-items: center; text-decoration: none }
 .btn.small { min-height: 56px; padding: 10px 16px; font-size: 1.1rem; width: auto }
+.btn.conta { min-width: 72px; font-size: 1.7rem; line-height: 1 }
 .pair { display: flex; gap: 12px; flex-wrap: wrap }
 .pair > * { flex: 1 1 200px }
 
@@ -104,6 +105,16 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
 
   <ul class="list" id="medicine-lista"></ul>
   <button class="btn ghost" type="button" id="riepilogo-apri" hidden>Riepilogo delle medicine</button>
+  <button class="btn ghost" type="button" id="ricetta-apri" hidden>Ricetta per il dottore</button>
+  <div class="panel" id="ricetta" hidden>
+    <h2>Ricetta per il dottore</h2>
+    <p class="muted">Ti propongo le scatole per un mese, tolte quelle che hai già. Cambia i numeri con − e +, poi premi Condividi.</p>
+    <ul class="list" id="ricetta-lista"></ul>
+    <div class="pair">
+      <button class="btn" type="button" id="ricetta-condividi">Condividi</button>
+      <button class="btn ghost" type="button" id="ricetta-chiudi">Chiudi</button>
+    </div>
+  </div>
   <div class="panel" id="riepilogo" hidden>
     <h2>Riepilogo</h2>
     <p id="riepilogo-testo" style="white-space: pre-line"></p>
@@ -130,6 +141,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
       <div><label for="med-algiorno">Quante ne prendi al giorno?</label><input type="number" id="med-algiorno" inputmode="decimal" min="0.5" step="0.5" required></div>
       <div><label for="med-rimaste">Quante te ne restano?</label><input type="number" id="med-rimaste" inputmode="decimal" min="0" step="0.5" required></div>
     </div>
+    <div><label for="med-scatola">Quante ce ne sono in una scatola? (serve per la ricetta)</label><input type="number" id="med-scatola" inputmode="numeric" min="1" step="1"></div>
     <div class="pair">
       <div><label for="med-ora1">A che ora la prendi?</label><input type="time" id="med-ora1"></div>
       <div><label for="med-ora2">Secondo orario (se serve)</label><input type="time" id="med-ora2"></div>
@@ -265,7 +277,8 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     });
     $('medicine-vuota').hidden = medicine.length > 0;
     $('riepilogo-apri').hidden = !medicine.length || !$('riepilogo').hidden;
-    if (!medicine.length) $('riepilogo').hidden = true;
+    $('ricetta-apri').hidden = !medicine.length || !$('ricetta').hidden;
+    if (!medicine.length) { $('riepilogo').hidden = true; $('ricetta').hidden = true; }
     $('riepilogo-testo').textContent = riepilogo();
 
     var poche = medicine.filter(function (m) { return bastano(m) <= SOGLIA; });
@@ -289,6 +302,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     inModifica = m;
     $('med-nome').value = m.nome; $('med-tipo').value = m.tipo; $('med-algiorno').value = m.alGiorno;
     $('med-rimaste').value = scatolaNuova ? '' : Math.round(restano(m) * 100) / 100;
+    $('med-scatola').value = m.scatola || '';
     ORARI.forEach(function (id, i) { $(id).value = m.orari[i] || ''; });
     $('form-titolo').textContent = 'Modifica la medicina'; $('med-annulla').hidden = false;
     $('medicine-form').scrollIntoView({ block: 'start' });
@@ -315,11 +329,52 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     $('riepilogo').hidden = false; $('riepilogo-apri').hidden = true; disegna(); $('riepilogo').scrollIntoView({ block: 'nearest' });
   });
   $('riepilogo-chiudi').addEventListener('click', function () { $('riepilogo').hidden = true; disegna(); });
-  $('riepilogo-condividi').addEventListener('click', function () {
-    var testo = riepilogo();
-    if (navigator.share) { navigator.share({ title: 'Le mie medicine', text: testo }).catch(function () {}); return; }
-    try { navigator.clipboard.writeText(testo).then(function () { avviso('Riepilogo copiato: incollalo dove vuoi.'); }); }
+  function condividi(titolo, testo) {
+    if (navigator.share) { navigator.share({ title: titolo, text: testo }).catch(function () {}); return; }
+    try { navigator.clipboard.writeText(testo).then(function () { avviso('Testo copiato: incollalo dove vuoi.'); }); }
     catch (e) { avviso('Non riesco a condividere da questo telefono: copia il testo a mano.'); }
+  }
+  $('riepilogo-condividi').addEventListener('click', function () { condividi('Le mie medicine', riepilogo()); });
+
+  // --- ricetta per il dottore ---
+  // Propongo le scatole per un mese tolte quelle che restano; senza la grandezza della scatola ne propongo una.
+  var GIORNI_RICETTA = 30, scatole = {};
+  function proposta(m) {
+    var manca = m.alGiorno * GIORNI_RICETTA - restano(m);
+    return manca <= 0 ? 0 : m.scatola ? Math.ceil(manca / m.scatola - 1e-6) : 1;
+  }
+  function disegnaRicetta() {
+    var ul = $('ricetta-lista'); ul.textContent = '';
+    medicine.forEach(function (m) {
+      var n = scatole[m.id] || 0, li = document.createElement('li'); li.className = 'item';
+      var corpo = document.createElement('div'); corpo.className = 'body';
+      var nome = document.createElement('div'); nome.className = 'name'; nome.textContent = m.nome;
+      var quanto = document.createElement('div'); quanto.textContent = n === 0 ? 'Nessuna scatola' : n === 1 ? '1 scatola' : n + ' scatole';
+      corpo.appendChild(nome); corpo.appendChild(quanto);
+      [['−', -1], ['+', 1]].forEach(function (t) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ghost small conta'; b.textContent = t[0];
+        b.setAttribute('aria-label', (t[1] < 0 ? 'Una scatola in meno di ' : 'Una scatola in più di ') + m.nome);
+        b.addEventListener('click', function () { scatole[m.id] = Math.max(0, (scatole[m.id] || 0) + t[1]); disegnaRicetta(); });
+        li.appendChild(b);
+      });
+      li.insertBefore(corpo, li.firstChild); ul.appendChild(li);
+    });
+  }
+  function ricetta() {
+    var righe = medicine.filter(function (m) { return scatole[m.id] > 0; }).map(function (m) {
+      return '• ' + m.nome + ': ' + (scatole[m.id] === 1 ? '1 scatola' : scatole[m.id] + ' scatole');
+    });
+    return righe.length ? 'Buongiorno dottore, le chiedo la ricetta per:\n' + righe.join('\n') + '\nGrazie.' : '';
+  }
+  $('ricetta-apri').addEventListener('click', function () {
+    scatole = {}; medicine.forEach(function (m) { scatole[m.id] = proposta(m); });
+    $('ricetta').hidden = false; $('ricetta-apri').hidden = true; disegnaRicetta(); $('ricetta').scrollIntoView({ block: 'nearest' });
+  });
+  $('ricetta-chiudi').addEventListener('click', function () { $('ricetta').hidden = true; disegna(); });
+  $('ricetta-condividi').addEventListener('click', function () {
+    var testo = ricetta();
+    if (!testo) { avviso('Non hai scelto nessuna scatola: aggiungine con +.'); return; }
+    condividi('Ricetta per il dottore', testo);
   });
 
   $('medicine-form').addEventListener('submit', function (e) {
@@ -332,6 +387,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     medicine = medicine.filter(function (m) { return m !== inModifica && m !== stessoNome; });
     // Tengo lo stesso identificativo, così le dosi già segnate oggi restano segnate.
     medicine.push({ id: vecchia ? vecchia.id : Date.now(), nome: nome, tipo: $('med-tipo').value, alGiorno: alGiorno, rimaste: rimaste,
+      scatola: Math.round(+$('med-scatola').value) > 0 ? Math.round(+$('med-scatola').value) : 0,
       dal: iso(new Date()), orari: orari, dalleOre: oraAdesso(), calendario: !!(vecchia && vecchia.calendario) });
     var daAggiornare = vecchia && vecchia.calendario && (vecchia.nome !== nome || vecchia.orari.join() !== orari.join() || vecchia.alGiorno !== alGiorno);
     chiudiModifica(); window.scrollTo(0, 0);
