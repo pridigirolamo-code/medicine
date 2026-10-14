@@ -103,6 +103,15 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
   </div>
 
   <ul class="list" id="medicine-lista"></ul>
+  <button class="btn ghost" type="button" id="riepilogo-apri" hidden>Riepilogo delle medicine</button>
+  <div class="panel" id="riepilogo" hidden>
+    <h2>Riepilogo</h2>
+    <p id="riepilogo-testo" style="white-space: pre-line"></p>
+    <div class="pair">
+      <button class="btn" type="button" id="riepilogo-condividi">Condividi</button>
+      <button class="btn ghost" type="button" id="riepilogo-chiudi">Chiudi</button>
+    </div>
+  </div>
   <p class="muted" id="medicine-vuota" hidden>Non hai ancora segnato nessuna medicina. Aggiungi la prima qui sotto.</p>
 
   <form class="panel" id="medicine-form">
@@ -130,8 +139,17 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     <button class="btn ghost" type="button" id="med-annulla" hidden>Annulla</button>
   </form>
 
+  <div class="panel" id="telegram" hidden>
+    <h2>Avvisi su Telegram</h2>
+    <p class="muted">Con Telegram gli avvisi arrivano anche quando questa app è chiusa.</p>
+    <p id="tg-me"></p>
+    <a class="btn" id="tg-collega" target="_blank" rel="noopener">Collega il mio Telegram</a>
+    <p id="tg-famiglia"></p>
+    <button class="btn ghost" type="button" id="tg-invita">Manda il collegamento alla famiglia</button>
+  </div>
+
   <form class="panel" id="famiglia-form">
-    <h2>Avvisi alla famiglia</h2>
+    <h2>Avvisi alla famiglia su WhatsApp</h2>
     <p class="muted" id="famiglia-stato"></p>
     <div><label for="fam-numero">Numero WhatsApp di un familiare</label><input type="tel" id="fam-numero" autocomplete="off" placeholder="Per esempio: 333 123 4567"></div>
     <button class="btn" type="submit">Salva il numero</button>
@@ -212,7 +230,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
   function numero(n) { return String(Math.round(n * 100) / 100).replace('.', ','); }
   function quante(m, n) { return numero(n) + ' ' + (TIPI[m.tipo] || TIPI.altro)[n === 1 ? 0 : 1]; }
   function durata(m) { var g = bastano(m); return g <= 0 ? 'È finita' : g === 1 ? 'Basta per 1 giorno' : 'Basta per ' + g + ' giorni'; }
-  function salva() { scrivi('lista', medicine); disegna(); controllaDosi(); }
+  function salva() { scrivi('lista', medicine); disegna(); controllaDosi(); sincronizza(); }
 
   function disegna() {
     $('oggi').textContent = 'Oggi è ' + new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -246,13 +264,16 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
       li.appendChild(t); ul.appendChild(li);
     });
     $('medicine-vuota').hidden = medicine.length > 0;
+    $('riepilogo-apri').hidden = !medicine.length || !$('riepilogo').hidden;
+    if (!medicine.length) $('riepilogo').hidden = true;
+    $('riepilogo-testo').textContent = riepilogo();
 
     var poche = medicine.filter(function (m) { return bastano(m) <= SOGLIA; });
     $('scorte-avviso').hidden = !poche.length;
     $('scorte-testo').textContent = poche.map(function (m) { return m.nome + ': ' + durata(m).toLowerCase() + '.'; }).join(' ') + ' ' + CONSIGLIO;
 
     // La famiglia viene avvisata una volta sola per ogni medicina che sta per finire.
-    if (numeroFamiglia()) {
+    if (numeroFamiglia() && !serverAvvisa) {
       var dette = leggi('scorte-dette', []), nuove = poche.filter(function (m) { return dette.indexOf(m.id) < 0; });
       scrivi('scorte-dette', poche.map(function (m) { return m.id; }));
       if (nuove.length) avvisaFamiglia(nuove.map(function (m) {
@@ -279,6 +300,27 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     $('form-titolo').textContent = 'Aggiungi una medicina'; $('med-annulla').hidden = true;
   }
   $('med-annulla').addEventListener('click', function () { chiudiModifica(); window.scrollTo(0, 0); });
+
+  // --- riepilogo ---
+  // Un testo semplice con scorte e dosi di tutte le medicine, da leggere o da mandare (medico, farmacia, famiglia).
+  function riepilogo() {
+    return 'Le mie medicine, ' + new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) + ':\n' +
+      medicine.map(function (m) {
+        var r = restano(m), g = bastano(m);
+        return '• ' + m.nome + ': ' + (r === 1 ? 'resta ' : 'restano ') + quante(m, r) + ', ' + quante(m, m.alGiorno) + ' al giorno' +
+          (m.orari.length ? ' (ore ' + m.orari.join(', ') + ')' : '') + ', ' + (g <= 0 ? 'è finita' : g === 1 ? 'basta per 1 giorno' : 'basta per ' + g + ' giorni') + '.';
+      }).join('\n');
+  }
+  $('riepilogo-apri').addEventListener('click', function () {
+    $('riepilogo').hidden = false; $('riepilogo-apri').hidden = true; disegna(); $('riepilogo').scrollIntoView({ block: 'nearest' });
+  });
+  $('riepilogo-chiudi').addEventListener('click', function () { $('riepilogo').hidden = true; disegna(); });
+  $('riepilogo-condividi').addEventListener('click', function () {
+    var testo = riepilogo();
+    if (navigator.share) { navigator.share({ title: 'Le mie medicine', text: testo }).catch(function () {}); return; }
+    try { navigator.clipboard.writeText(testo).then(function () { avviso('Riepilogo copiato: incollalo dove vuoi.'); }); }
+    catch (e) { avviso('Non riesco a condividere da questo telefono: copia il testo a mano.'); }
+  });
 
   $('medicine-form').addEventListener('submit', function (e) {
     e.preventDefault();
@@ -367,7 +409,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     });
     $('dosi-avviso').hidden = !dosi.length;
     // Dopo mezz'ora senza «L'ho presa» preparo l'avviso per la famiglia, una volta sola per ogni dose.
-    if (numeroFamiglia()) {
+    if (numeroFamiglia() && !serverAvvisa) {
       var adesso = minuti(oraAdesso()), giaDette = g.famiglia || [];
       var saltate = dosi.filter(function (d) { return adesso - minuti(d.ora) >= RITARDO && giaDette.indexOf(d.chiave) < 0; });
       if (saltate.length) {
@@ -383,7 +425,59 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     try { if (navigator.vibrate) navigator.vibrate([300, 150, 300]); } catch (e) {}
     try { var u = new SpeechSynthesisUtterance(testo); u.lang = 'it-IT'; u.rate = 0.9; speechSynthesis.speak(u); } catch (e) {}
   }
-  function giro() { disegna(); controllaDosi(); }
+  // --- Telegram ---
+  // Se l'app è servita dal suo server con un bot di Telegram, gli avvisi arrivano anche con l'app chiusa:
+  // il server tiene una copia di medicine e dosi prese, e scrive lui alla persona e alla famiglia.
+  function casuale() {
+    var a = new Uint8Array(16); crypto.getRandomValues(a);
+    return Array.prototype.map.call(a, function (b) { return b.toString(16).padStart(2, '0'); }).join('');
+  }
+  // DISPOSITIVO è la chiave segreta di questo telefono verso il server; INVITO è il codice che finisce nei collegamenti di Telegram.
+  var DISPOSITIVO = leggi('dispositivo', '') || casuale(), INVITO = leggi('invito', '') || casuale();
+  scrivi('dispositivo', DISPOSITIVO); scrivi('invito', INVITO);
+  var serverAvvisa = leggi('server-avvisa', false), applicate = leggi('applicate', []), senzaServizio = false, bot = '';
+  function sincronizza() {
+    if (senzaServizio) return;
+    var g = giornata();
+    fetch('api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, invito: INVITO,
+      medicine: medicine, giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate }) })
+      .then(function (r) {
+        // Senza server (per esempio su un sito di soli file) l'app resta com'è e smette di chiedere.
+        if (r.status === 404 || r.status === 405) senzaServizio = true;
+        if (!r.ok) throw new Error('servizio');
+        return r.json();
+      }).then(function (r) {
+        var tg = r.telegram; bot = tg ? tg.bot : '';
+        // Con almeno un familiare su Telegram gli avvisi alla famiglia li manda il server: qui non preparo quelli di WhatsApp.
+        serverAvvisa = !!(tg && tg.famiglia > 0); scrivi('server-avvisa', serverAvvisa);
+        $('telegram').hidden = !tg;
+        if (tg) {
+          $('tg-me').textContent = (tg.paziente ? 'Il tuo Telegram è collegato: ti scrivo lì' : 'Collega il tuo Telegram: ti scrivo lì') + ' quando è ora di una medicina, con il tasto «L\'ho presa».';
+          $('tg-collega').hidden = tg.paziente; $('tg-collega').href = 'https://t.me/' + bot + '?start=p_' + INVITO;
+          $('tg-famiglia').textContent = tg.famiglia === 0 ? 'Nessun familiare collegato. Manda il collegamento a chi deve ricevere gli avvisi.'
+            : tg.famiglia === 1 ? '1 familiare collegato: riceve gli avvisi da solo.' : tg.famiglia + ' familiari collegati: ricevono gli avvisi da soli.';
+        }
+        // Dosi segnate da Telegram: le segno anche qui e le tolgo dalla scorta, poi lo dico al server.
+        var nuove = (r.prese || []).filter(function (e) { return applicate.indexOf(e.giorno + '#' + e.chiave) < 0; });
+        if (!nuove.length) return;
+        nuove.forEach(function (e) {
+          applicate.push(e.giorno + '#' + e.chiave);
+          var id = e.chiave.split('|')[0], m = medicine.filter(function (x) { return String(x.id) === id; })[0], oggi = giornata();
+          if (m && m.orari.length) m.rimaste = Math.max(0, m.rimaste - m.alGiorno / m.orari.length);
+          if (e.giorno === oggi.giorno && oggi.fatte.indexOf(e.chiave) < 0) { oggi.fatte.push(e.chiave); scrivi('dosi', oggi); }
+        });
+        applicate = applicate.slice(-100); scrivi('applicate', applicate);
+        salva();
+      }).catch(function () { if (senzaServizio) $('telegram').hidden = true; });
+  }
+  $('tg-invita').addEventListener('click', function () {
+    var testo = 'Apri questo collegamento e premi «Avvia»: riceverai su Telegram gli avvisi sulle mie medicine.', url = 'https://t.me/' + bot + '?start=f_' + INVITO;
+    if (navigator.share) { navigator.share({ text: testo, url: url }).catch(function () {}); return; }
+    try { navigator.clipboard.writeText(testo + ' ' + url).then(function () { avviso('Collegamento copiato: incollalo in un messaggio per la tua famiglia.'); }); }
+    catch (e) { avviso('Non riesco a copiare il collegamento da questo telefono.'); }
+  });
+
+  function giro() { disegna(); controllaDosi(); sincronizza(); }
   setInterval(giro, 30000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) giro(); });
 
