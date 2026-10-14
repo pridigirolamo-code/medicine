@@ -87,6 +87,16 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
 /* Tasti di ogni medicina: una riga sola sotto le scritte */
 .azioni { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; width: 100% }
 .azioni .btn.small { width: 100%; padding: 4px 2px; font-size: 0.86rem; white-space: nowrap }
+/* Giorni della settimana: sette caselle da accendere o spegnere */
+.giorni-campo { border: 0; margin: 0; padding: 0 }
+.giorni-campo legend { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; padding: 0 }
+.giorni { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px }
+.giorno { position: relative; margin: 0 }
+.giorno input { position: absolute; opacity: 0; inset: 0; margin: 0 }
+.giorno span { display: block; text-align: center; padding: 8px 0; border: 1.5px solid var(--line); border-radius: 8px;
+  font-weight: 700; font-size: 0.85rem; background: var(--surface); color: var(--muted) }
+.giorno input:checked + span { background: var(--pills); border-color: var(--pills); color: var(--on-color) }
+.giorno input:focus-visible + span { outline: 3px solid var(--ink); outline-offset: 2px }
 .tag { font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700 }
 
 .list { display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; padding: 0 }
@@ -149,7 +159,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 17</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 18</p>
 </section>
 
 <!-- ELENCO -->
@@ -231,6 +241,18 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
       <div><label for="med-rimaste">Quante te ne restano?</label><input type="number" id="med-rimaste" inputmode="decimal" min="0" step="0.5" required></div>
     </div>
     <div><label for="med-scatola">Quante ce ne sono in una scatola? (serve per la ricetta)</label><input type="number" id="med-scatola" inputmode="numeric" min="1" step="1"></div>
+    <fieldset class="giorni-campo">
+      <legend>In quali giorni la prendi?</legend>
+      <div class="giorni" id="med-giorni">
+        <label class="giorno"><input type="checkbox" value="1" checked><span>Lun</span></label>
+        <label class="giorno"><input type="checkbox" value="2" checked><span>Mar</span></label>
+        <label class="giorno"><input type="checkbox" value="3" checked><span>Mer</span></label>
+        <label class="giorno"><input type="checkbox" value="4" checked><span>Gio</span></label>
+        <label class="giorno"><input type="checkbox" value="5" checked><span>Ven</span></label>
+        <label class="giorno"><input type="checkbox" value="6" checked><span>Sab</span></label>
+        <label class="giorno"><input type="checkbox" value="0" checked><span>Dom</span></label>
+      </div>
+    </fieldset>
     <div class="pair">
       <div><label for="med-ora1">A che ora la prendi?</label><input type="time" id="med-ora1"></div>
       <div><label for="med-ora2">Secondo orario (se serve)</label><input type="time" id="med-ora2"></div>
@@ -365,8 +387,30 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
   // Con gli orari la scorta scende solo quando si preme «L'ho presa»; senza orari il tasto non c'è e scende da sola ogni giorno.
   var medicine = leggi('lista', []);
   function contaDaSola(m) { return !(m.orari && m.orari.length); }
-  function restano(m) { return Math.max(0, contaDaSola(m) ? m.rimaste - m.alGiorno * giorniDa(m.dal) : m.rimaste); }
-  function bastano(m) { return Math.floor(restano(m) / m.alGiorno + 1e-6); }
+  // Giorni della settimana (0 = domenica, come getDay). Senza «giorni» la medicina si prende tutti i giorni.
+  var NOMI_GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+  function prende(m, data) { return !m.giorni || m.giorni.indexOf(data.getDay()) >= 0; }
+  function quando(m) {
+    if (!m.giorni) return quante(m, m.alGiorno) + ' al giorno';
+    return quante(m, m.alGiorno) + ' (' + [1, 2, 3, 4, 5, 6, 0].filter(function (d) { return m.giorni.indexOf(d) >= 0; }).map(function (d) { return NOMI_GIORNI[d]; }).join(', ') + ')';
+  }
+  // Dosi già passate da «dal» a ieri, contando solo i giorni in cui la medicina si prende.
+  function dosiPassate(m) {
+    if (!m.giorni) return giorniDa(m.dal);
+    var p = m.dal.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2]), oggi = new Date(), n = 0;
+    oggi.setHours(0, 0, 0, 0);
+    while (d < oggi) { if (prende(m, d)) n++; d.setDate(d.getDate() + 1); }
+    return n;
+  }
+  function restano(m) { return Math.max(0, contaDaSola(m) ? m.rimaste - m.alGiorno * dosiPassate(m) : m.rimaste); }
+  // Per quanti giorni di calendario basta: con alcuni giorni liberi nella settimana dura di più.
+  function bastano(m) {
+    var dosi = Math.floor(restano(m) / m.alGiorno + 1e-6);
+    if (!m.giorni) return dosi;
+    var d = new Date(), giorni = 0;
+    while (dosi > 0 && giorni < 3660) { if (prende(m, d)) dosi--; d.setDate(d.getDate() + 1); giorni++; }
+    return giorni;
+  }
   function numero(n) { return String(Math.round(n * 100) / 100).replace('.', ','); }
   function quante(m, n) { return numero(n) + ' ' + (TIPI[m.tipo] || TIPI.altro)[n === 1 ? 0 : 1]; }
   function durata(m) { var g = bastano(m); return g <= 0 ? 'È finita' : g === 1 ? 'Basta per 1 giorno' : 'Basta per ' + g + ' giorni'; }
@@ -381,7 +425,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
       var corpo = document.createElement('div'); corpo.className = 'body';
       var n = document.createElement('div'); n.className = 'name'; n.textContent = m.nome;
       var o = document.createElement('div'); o.className = 'when';
-      o.textContent = quante(m, m.alGiorno) + ' al giorno' + (m.orari.length ? ' · ore ' + m.orari.join(', ') : '');
+      o.textContent = quando(m) + (m.orari.length ? ' · ore ' + m.orari.join(', ') : '');
       var d = document.createElement('div');
       d.textContent = (r === 1 ? 'Resta ' : 'Restano ') + quante(m, r) + ' · ' + durata(m).toLowerCase() + (m.richiesta ? ' · ricetta richiesta il ' + giornoBreve(m.richiesta) : '');
       corpo.appendChild(n); corpo.appendChild(o); corpo.appendChild(d);
@@ -446,6 +490,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     $('med-rimaste').value = Math.round(restano(m) * 100) / 100;
     $('med-scatola').value = m.scatola || '';
     ORARI.forEach(function (id, i) { $(id).value = m.orari[i] || ''; });
+    document.querySelectorAll('#med-giorni input').forEach(function (c) { c.checked = !m.giorni || m.giorni.indexOf(+c.value) >= 0; });
     $('form-titolo').textContent = 'Modifica la medicina'; $('med-annulla').hidden = false;
     vai('aggiungi');
     avviso('Cambia quello che serve, poi premi Salva.');
@@ -492,7 +537,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     return 'Le mie medicine, ' + new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) + ':\n' +
       medicine.map(function (m) {
         var r = restano(m), g = bastano(m);
-        return '• ' + m.nome + ': ' + (r === 1 ? 'resta ' : 'restano ') + quante(m, r) + ', ' + quante(m, m.alGiorno) + ' al giorno' +
+        return '• ' + m.nome + ': ' + (r === 1 ? 'resta ' : 'restano ') + quante(m, r) + ', ' + quando(m) +
           (m.orari.length ? ' (ore ' + m.orari.join(', ') + ')' : '') + ', ' + (g <= 0 ? 'è finita' : g === 1 ? 'basta per 1 giorno' : 'basta per ' + g + ' giorni') + '.';
       }).join('\n');
   }
@@ -512,7 +557,8 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
   // Propongo le scatole per un mese tolte quelle che restano; senza la grandezza della scatola ne propongo una.
   var GIORNI_RICETTA = 30, scatole = {};
   function proposta(m) {
-    var manca = m.alGiorno * GIORNI_RICETTA - restano(m);
+    var giorniDose = m.giorni ? Math.round(GIORNI_RICETTA * m.giorni.length / 7) : GIORNI_RICETTA;
+    var manca = m.alGiorno * giorniDose - restano(m);
     return manca <= 0 ? 0 : m.scatola ? Math.ceil(manca / m.scatola - 1e-6) : 1;
   }
   function disegnaRicetta() {
@@ -602,16 +648,21 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     var nome = $('med-nome').value.trim(), alGiorno = +$('med-algiorno').value, rimaste = +$('med-rimaste').value;
     if (!nome || !(alGiorno > 0) || !(rimaste >= 0)) { avviso('Controlla i numeri che hai scritto.'); return; }
     var orari = ORARI.map(function (id) { return $(id).value; }).filter(function (o, i, tutti) { return o && tutti.indexOf(o) === i; }).sort();
+    var giorni = Array.prototype.filter.call(document.querySelectorAll('#med-giorni input'), function (c) { return c.checked; }).map(function (c) { return +c.value; });
+    if (!giorni.length) { avviso('Scegli almeno un giorno della settimana.'); return; }
+    // Tutti e sette i giorni: non lo segno, così vale «tutti i giorni».
+    if (giorni.length === 7) giorni = undefined;
     // Stesso nome: aggiorno la medicina che c'è già invece di farne una doppia.
     var stessoNome = medicine.filter(function (m) { return m.nome.toLowerCase() === nome.toLowerCase(); })[0], vecchia = inModifica || stessoNome;
     medicine = medicine.filter(function (m) { return m !== inModifica && m !== stessoNome; });
     // Tengo lo stesso identificativo, così le dosi già segnate oggi restano segnate.
     medicine.push({ id: vecchia ? vecchia.id : Date.now(), nome: nome, tipo: $('med-tipo').value, alGiorno: alGiorno, rimaste: rimaste,
       scatola: Math.round(+$('med-scatola').value) > 0 ? Math.round(+$('med-scatola').value) : 0,
-      dal: iso(new Date()), orari: orari, dalleOre: oraAdesso(), calendario: !!(vecchia && vecchia.calendario),
+      dal: iso(new Date()), orari: orari, giorni: giorni, dalleOre: oraAdesso(), calendario: !!(vecchia && vecchia.calendario),
       // La ricetta chiesta resta segnata, a meno che le scorte non siano state aumentate a mano.
       richiesta: vecchia && vecchia.richiesta && rimaste <= restano(vecchia) ? vecchia.richiesta : undefined });
-    var daAggiornare = vecchia && vecchia.calendario && (vecchia.nome !== nome || vecchia.orari.join() !== orari.join() || vecchia.alGiorno !== alGiorno);
+    var daAggiornare = vecchia && vecchia.calendario && (vecchia.nome !== nome || vecchia.orari.join() !== orari.join() || vecchia.alGiorno !== alGiorno ||
+      String(vecchia.giorni || '') !== String(giorni || ''));
     // Dopo il salvataggio mostro l'elenco: se venivo dall'elenco ci torno, altrimenti l'elenco prende il posto del modulo.
     chiudiModifica();
     if (pila[pila.length - 2] === 'elenco') history.back();
@@ -627,12 +678,15 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
   // nel calendario del telefono, che suona da solo. Il file contiene un appuntamento per ogni orario.
   function perCalendario(testo) { return String(testo).replace(/\\/g, '\\\\').replace(/([,;])/g, '\\$1').replace(/\n/g, '\\n'); }
   function calendario(m) {
-    var oggi = iso(new Date()).replace(/-/g, ''), timbro = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    // Il primo appuntamento cade nel primo giorno (da oggi) in cui la medicina si prende.
+    var primo = new Date(); while (!prende(m, primo)) primo.setDate(primo.getDate() + 1);
+    var oggi = iso(primo).replace(/-/g, ''), timbro = new Date().toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z';
+    var ripeti = m.giorni ? 'RRULE:FREQ=WEEKLY;BYDAY=' + m.giorni.map(function (d) { return ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'][d]; }).join(',') : 'RRULE:FREQ=DAILY';
     var dose = m.alGiorno / m.orari.length, righe = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Le mie medicine//IT', 'CALSCALE:GREGORIAN'];
     m.orari.forEach(function (o, i) {
       // Stesso identificativo a ogni salvataggio: rimettendola nel calendario il promemoria si aggiorna invece di raddoppiare.
       righe.push('BEGIN:VEVENT', 'UID:' + encodeURIComponent(m.nome.toLowerCase()) + '-' + (i + 1) + '@le-mie-medicine', 'DTSTAMP:' + timbro,
-        'DTSTART:' + oggi + 'T' + o.replace(':', '') + '00', 'DURATION:PT5M', 'RRULE:FREQ=DAILY',
+        'DTSTART:' + oggi + 'T' + o.replace(':', '') + '00', 'DURATION:PT5M', ripeti,
         'SUMMARY:' + perCalendario('Medicina: ' + m.nome + ' (' + quante(m, dose) + ')'),
         'DESCRIPTION:' + perCalendario('Apri «Le mie medicine» e premi «L\'ho presa».'),
         'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + perCalendario('È ora di prendere: ' + m.nome), 'TRIGGER:PT0M', 'END:VALARM', 'END:VEVENT');
@@ -656,6 +710,8 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
   function dosiDaPrendere() {
     var g = giornata(), adesso = oraAdesso(), oggi = iso(new Date()), dosi = [];
     medicine.forEach(function (m) {
+      // Oggi non è un giorno in cui la si prende: nessun avviso.
+      if (!prende(m, new Date())) return;
       m.orari.forEach(function (o) {
         // Gli orari già passati quando la medicina è stata segnata non contano.
         if (o > adesso || (m.dal === oggi && o < m.dalleOre)) return;
