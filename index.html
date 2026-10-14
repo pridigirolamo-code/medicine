@@ -167,7 +167,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 19</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 20</p>
 </section>
 
 <!-- ELENCO -->
@@ -427,8 +427,12 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
   function disegna() {
     $('oggi').textContent = 'Oggi è ' + new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
     var ul = $('medicine-lista'); ul.textContent = '';
+    // Riepilogo e ricetta mettono in cima quelle che finiscono prima; l'elenco invece va in ordine d'orario
+    // (prima quella del mattino), con in fondo quelle senza orario.
     medicine.sort(function (a, b) { return bastano(a) - bastano(b); });
-    medicine.forEach(function (m) {
+    medicine.slice().sort(function (a, b) {
+      return (a.orari[0] || '99:99').localeCompare(b.orari[0] || '99:99') || a.nome.localeCompare(b.nome, 'it');
+    }).forEach(function (m) {
       var r = restano(m), li = document.createElement('li'); li.className = 'item' + (bastano(m) <= SOGLIA ? ' warn' : '');
       var corpo = document.createElement('div'); corpo.className = 'body';
       var n = document.createElement('div'); n.className = 'name'; n.textContent = m.nome;
