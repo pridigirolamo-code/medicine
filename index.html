@@ -117,6 +117,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     <span class="tag">Stanno per finire</span>
     <p id="scorte-testo"></p>
     <button class="btn ghost" type="button" id="scorte-ricetta">Prepara la ricetta per il dottore</button>
+    <button class="btn ghost" type="button" id="scorte-segna">Ho già chiesto la ricetta</button>
   </div>
 
   <div class="panel warn" id="famiglia-attesa" role="status" hidden>
@@ -404,7 +405,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     $('scorte-testo').textContent = poche.map(function (m) {
       return m.nome + ': ' + durata(m).toLowerCase() + (m.richiesta ? ' (ricetta già richiesta il ' + giornoBreve(m.richiesta) + ')' : '') + '.';
     }).join(' ') + ' ' + (daChiedere.length ? CONSIGLIO : 'Ricetta già richiesta: quando compri le scatole, segnale con «Ho la scatola nuova» in «Le mie medicine».');
-    $('scorte-ricetta').hidden = !daChiedere.length;
+    $('scorte-ricetta').hidden = !daChiedere.length; $('scorte-segna').hidden = !daChiedere.length;
     $('riass-medicine').textContent = !medicine.length ? 'Non hai ancora segnato nessuna medicina.'
       : (medicine.length === 1 ? '1 medicina' : medicine.length + ' medicine') + (poche.length === 0 ? ': le scorte bastano.'
         : poche.length === 1 ? ': 1 sta per finire.' : ': ' + poche.length + ' stanno per finire.');
@@ -526,6 +527,13 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
   });
   $('ricetta-chiudi').addEventListener('click', function () { $('ricetta').hidden = true; disegna(); });
   $('scorte-ricetta').addEventListener('click', function () { vai('riepiloghi'); $('ricetta-apri').click(); });
+  // Ricetta chiesta in un altro modo (al telefono, di persona): la segno senza mandare niente.
+  $('scorte-segna').addEventListener('click', function () {
+    var segnate = medicine.filter(function (m) { return bastano(m) <= SOGLIA && !m.richiesta; });
+    segnate.forEach(function (m) { m.richiesta = iso(new Date()); });
+    salva();
+    avviso('Segnato: ricetta già richiesta.', function () { segnate.forEach(function (m) { delete m.richiesta; }); salva(); });
+  });
   $('ricetta-condividi').addEventListener('click', function () {
     var testo = ricetta();
     if (!testo) { avviso('Non hai scelto nessuna scatola: aggiungine con +.'); return; }
