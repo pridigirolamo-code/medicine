@@ -57,10 +57,10 @@ a.btn { display: grid; place-items: center; text-decoration: none }
 /* Riquadri della prima pagina e tasto per tornare */
 .menu { display: flex; flex-direction: column; gap: 14px }
 .row { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 14px;
-  display: flex; align-items: center; gap: 16px; text-align: left; width: 100%; min-height: 96px }
+  display: flex; align-items: center; gap: 14px; text-align: left; width: 100%; min-height: 84px }
 .row:hover { border-color: var(--ink) }
-.row .ico { width: 68px; height: 68px; border-radius: 14px; flex: none; display: grid; place-items: center; color: var(--on-color) }
-.row .ico svg { width: 40px; height: 40px }
+.row .ico { width: 58px; height: 58px; border-radius: 14px; flex: none; display: grid; place-items: center; color: var(--on-color) }
+.row .ico svg { width: 36px; height: 36px }
 .row .txt { min-width: 0 }
 .row strong { font-family: var(--display); font-size: 1.5rem; display: block; line-height: 1.15 }
 .row span { color: var(--muted); font-size: 1.1rem }
@@ -79,7 +79,12 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
 
 .panel { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 20px;
   display: flex; flex-direction: column; gap: 14px }
-.panel.warn { background: var(--warn-soft); border-color: var(--warn) }
+.panel.warn { background: var(--warn-soft); border-color: var(--warn); padding: 14px 16px; gap: 10px }
+.panel.warn p { font-size: 1.15rem }
+/* Dose da prendere: nome e ora a sinistra, «L'ho presa» a destra, su una riga sola */
+.item.dose { flex-wrap: nowrap; padding: 10px 12px; gap: 10px }
+.item.dose .body { flex: 1 1 auto; font-size: 1.15rem }
+.item.dose .btn { flex: none }
 .tag { font-size: 0.95rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700 }
 
 .list { display: flex; flex-direction: column; gap: 12px; list-style: none; margin: 0; padding: 0 }
@@ -141,7 +146,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Metti nel calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 15</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Metti nel calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 16</p>
 </section>
 
 <!-- ELENCO -->
@@ -408,8 +413,8 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     var daChiedere = poche.filter(function (m) { return !m.richiesta; });
     $('scorte-avviso').hidden = !poche.length;
     $('scorte-testo').textContent = poche.map(function (m) {
-      return m.nome + ': ' + durata(m).toLowerCase() + (m.richiesta ? ' (ricetta già richiesta il ' + giornoBreve(m.richiesta) + ')' : '') + '.';
-    }).join(' ') + ' ' + (daChiedere.length ? CONSIGLIO : 'Ricetta già richiesta: quando compri le scatole, segnale con «Ho la scatola nuova» in «Le mie medicine».');
+      return m.nome + ': ' + durata(m).toLowerCase() + (m.richiesta ? ', ricetta già richiesta' : '') + '.';
+    }).join(' ') + ' ' + (daChiedere.length ? CONSIGLIO : 'Quando compri le scatole, premi «Ho la scatola nuova».');
     $('scorte-ricetta').hidden = !daChiedere.length; $('scorte-segna').hidden = !daChiedere.length;
     $('riass-medicine').textContent = !medicine.length ? 'Non hai ancora segnato nessuna medicina.'
       : (medicine.length === 1 ? '1 medicina' : medicine.length + ' medicine') + (poche.length === 0 ? ': le scorte bastano.'
@@ -662,10 +667,10 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     var g = giornata(), dosi = dosiDaPrendere(), ul = $('dosi-lista'); ul.textContent = '';
     dosi.forEach(function (d) {
       var dose = d.m.alGiorno / d.m.orari.length;
-      var li = document.createElement('li'); li.className = 'item';
+      var li = document.createElement('li'); li.className = 'item dose';
       var corpo = document.createElement('div'); corpo.className = 'body';
       var n = document.createElement('div'); n.className = 'name'; n.textContent = d.m.nome;
-      var o = document.createElement('div'); o.textContent = 'Ore ' + d.ora + ': ' + quante(d.m, dose);
+      var o = document.createElement('div'); o.textContent = 'Ore ' + d.ora + ' · ' + quante(d.m, dose);
       corpo.appendChild(n); corpo.appendChild(o);
       var b = document.createElement('button'); b.type = 'button'; b.className = 'btn small'; b.textContent = 'L\'ho presa';
       b.addEventListener('click', function () {
