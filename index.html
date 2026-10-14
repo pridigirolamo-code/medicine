@@ -74,7 +74,7 @@ a.btn { display: grid; place-items: center; text-decoration: none }
 .pair > * { flex: 1 1 200px }
 
 label { font-weight: 700; display: block; margin-bottom: 6px }
-input[type=text], input[type=tel], input[type=number], input[type=time], select { width: 100%; background: var(--surface);
+input[type=text], input[type=tel], input[type=email], input[type=number], input[type=time], select { width: 100%; background: var(--surface);
   border: 2px solid var(--muted); border-radius: 14px; padding: 14px; min-height: 64px; font-size: 1.3rem }
 
 .panel { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 20px;
@@ -145,7 +145,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Metti nel calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 13</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Metti nel calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 14</p>
 </section>
 
 <!-- ELENCO -->
@@ -183,6 +183,15 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     <h2>Ricetta per il dottore</h2>
     <p class="muted">Ti propongo le scatole per un mese, tolte quelle che hai già. Cambia i numeri con − e +, poi premi Condividi.</p>
     <ul class="list" id="ricetta-lista"></ul>
+    <a class="btn ok" id="dottore-whatsapp" target="_blank" rel="noopener" hidden>Manda al dottore su WhatsApp</a>
+    <a class="btn" id="dottore-email" hidden>Manda al dottore per email</a>
+    <button class="btn ghost small" type="button" id="dottore-cambia">Aggiungi il contatto del dottore</button>
+    <form class="panel" id="dottore-form" hidden>
+      <p class="muted">Scrivi il WhatsApp o l'email del dottore: basta uno dei due. Poi la ricetta gli arriva con un tasto.</p>
+      <div><label for="dottore-numero">WhatsApp del dottore</label><input type="tel" id="dottore-numero" autocomplete="off" placeholder="Per esempio: 333 123 4567"></div>
+      <div><label for="dottore-indirizzo">Email del dottore</label><input type="email" id="dottore-indirizzo" autocomplete="off" placeholder="Per esempio: dottore@esempio.it"></div>
+      <button class="btn" type="submit">Salva il contatto</button>
+    </form>
     <div class="pair">
       <button class="btn" type="button" id="ricetta-condividi">Condividi</button>
       <button class="btn ghost" type="button" id="ricetta-chiudi">Chiudi</button>
@@ -514,6 +523,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
       });
       li.insertBefore(corpo, li.firstChild); ul.appendChild(li);
     });
+    disegnaDottore();
   }
   function ricetta() {
     var righe = medicine.filter(function (m) { return scatole[m.id] > 0; }).map(function (m) {
@@ -534,16 +544,49 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     salva();
     avviso('Segnato: ricetta già richiesta.', function () { segnate.forEach(function (m) { delete m.richiesta; }); salva(); });
   });
+  // Segno la ricetta come chiesta: finché non arrivano le scatole nuove non la ripropongo in prima pagina.
+  function segnaChieste(chieste) {
+    chieste.forEach(function (m) { m.richiesta = iso(new Date()); });
+    salva(); avviso('Segnato: ricetta già richiesta al dottore.');
+  }
   $('ricetta-condividi').addEventListener('click', function () {
     var testo = ricetta();
     if (!testo) { avviso('Non hai scelto nessuna scatola: aggiungine con +.'); return; }
     var chieste = medicine.filter(function (m) { return scatole[m.id] > 0; });
-    condividi('Ricetta per il dottore', testo).then(function (fatto) {
-      if (!fatto) return;
-      // Segno la ricetta come chiesta: finché non arrivano le scatole nuove non la ripropongo in prima pagina.
-      chieste.forEach(function (m) { m.richiesta = iso(new Date()); });
-      salva(); avviso('Segnato: ricetta già richiesta al dottore.');
+    condividi('Ricetta per il dottore', testo).then(function (fatto) { if (fatto) segnaChieste(chieste); });
+  });
+
+  // --- contatto del dottore ---
+  // Con il WhatsApp o l'email del dottore salvati, la ricetta si apre già indirizzata a lui: resta solo da premere «Invia».
+  function dottore() { return leggi('dottore', { whatsapp: '', email: '' }); }
+  function disegnaDottore() {
+    var d = dottore(), testo = ricetta();
+    $('dottore-whatsapp').hidden = !d.whatsapp; $('dottore-email').hidden = !d.email;
+    $('dottore-whatsapp').href = 'https://wa.me/' + d.whatsapp + '?text=' + encodeURIComponent(testo);
+    $('dottore-email').href = 'mailto:' + d.email + '?subject=' + encodeURIComponent('Richiesta ricetta') + '&body=' + encodeURIComponent(testo);
+    $('dottore-cambia').textContent = d.whatsapp || d.email ? 'Cambia il contatto del dottore' : 'Aggiungi il contatto del dottore';
+    $('ricetta-condividi').textContent = d.whatsapp || d.email ? 'Condividi in un altro modo' : 'Condividi';
+  }
+  ['dottore-whatsapp', 'dottore-email'].forEach(function (id) {
+    $(id).addEventListener('click', function (e) {
+      if (!ricetta()) { e.preventDefault(); avviso('Non hai scelto nessuna scatola: aggiungine con +.'); return; }
+      // Non posso sapere se poi premi «Invia»: la segno come chiesta quando apri il messaggio.
+      segnaChieste(medicine.filter(function (m) { return scatole[m.id] > 0; }));
     });
+  });
+  $('dottore-cambia').addEventListener('click', function () {
+    var d = dottore(), f = $('dottore-form');
+    f.hidden = !f.hidden;
+    if (!f.hidden) { $('dottore-numero').value = d.whatsapp ? '+' + d.whatsapp : ''; $('dottore-indirizzo').value = d.email; f.scrollIntoView({ block: 'nearest' }); }
+  });
+  $('dottore-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var scritto = $('dottore-numero').value.trim(), numero = pulisciNumero(scritto), email = $('dottore-indirizzo').value.trim();
+    if (scritto && !numero) { avviso('Il numero del dottore non sembra giusto. Controllalo.'); return; }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { avviso('L\'email del dottore non sembra giusta. Controllala.'); return; }
+    scrivi('dottore', { whatsapp: numero, email: email });
+    this.hidden = true; disegnaDottore();
+    avviso(numero || email ? 'Contatto del dottore salvato.' : 'Contatto del dottore tolto.');
   });
 
   $('medicine-form').addEventListener('submit', function (e) {
