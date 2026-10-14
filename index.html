@@ -42,6 +42,7 @@ p { margin: 0 }
 .muted { color: var(--muted) }
 .today { font-size: 1rem; color: var(--muted) }
 .today::first-letter { text-transform: uppercase }
+.link-piccolo { background: none; border: 0; padding: 4px 0; color: var(--pills); font-weight: 700; font-size: 0.9rem; text-decoration: underline }
 
 button, input, select { font: inherit; color: inherit }
 button { cursor: pointer }
@@ -144,8 +145,17 @@ textarea { resize: vertical }
 <!-- PRIMA PAGINA: quello che serve oggi, poi i quattro riquadri -->
 <section id="casa">
   <div>
-    <h1>Le mie medicine</h1>
+    <h1 id="titolo">Le mie medicine</h1>
     <p class="today" id="oggi"></p>
+    <button class="link-piccolo" type="button" id="nome-cambia">Scrivi il nome di chi le prende</button>
+    <form class="panel" id="nome-form" hidden style="margin-top: 8px">
+      <div><label for="nome-persona">Di chi sono queste medicine?</label>
+        <input type="text" id="nome-persona" maxlength="30" autocomplete="off" placeholder="Per esempio: Mario"></div>
+      <div class="pair">
+        <button class="btn" type="submit">Salva</button>
+        <button class="btn ghost" type="button" id="nome-annulla">Annulla</button>
+      </div>
+    </form>
   </div>
 
   <div class="panel warn" id="dosi-avviso" role="status" hidden>
@@ -169,7 +179,7 @@ textarea { resize: vertical }
   <div class="menu">
     <button class="row" type="button" data-go="elenco">
       <div class="ico c-pills"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="13" width="30" height="14" rx="7" transform="rotate(-45 20 20)"/><path d="M15 15l10 10"/></svg></div>
-      <div class="txt"><strong>Le mie medicine</strong><span id="riass-medicine"></span></div>
+      <div class="txt"><strong>Elenco medicine</strong><span id="riass-medicine"></span></div>
     </button>
     <button class="row" type="button" data-go="riepiloghi">
       <div class="ico c-blue"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="5" width="24" height="30" rx="3"/><path d="M14 14h12M14 20h12M14 26h8"/></svg></div>
@@ -185,13 +195,13 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 23</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Elenco medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 24</p>
 </section>
 
 <!-- ELENCO -->
 <section id="elenco" class="compatta" hidden>
   <button class="back" type="button" data-go="casa"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Torna all'inizio</button>
-  <h2>Le mie medicine</h2>
+  <h2>Elenco medicine</h2>
 
   <div class="panel warn" id="scatola" hidden>
     <h2 id="scatola-titolo">Scatola nuova</h2>
@@ -453,7 +463,7 @@ textarea { resize: vertical }
     $('famiglia-manda').href = 'https://wa.me/' + n + '?text=' + encodeURIComponent(daMandare.join('\n'));
   }
   function avvisaFamiglia(testo) {
-    daMandare.push(testo + FIRMA); scrivi('da-mandare', daMandare); disegnaFamiglia();
+    daMandare.push((nomePersona() ? nomePersona() + ' – ' : '') + testo + FIRMA); scrivi('da-mandare', daMandare); disegnaFamiglia();
     avviso('Premi «Manda su WhatsApp» per avvisare la tua famiglia.');
   }
   $('famiglia-manda').addEventListener('click', function () { daMandare = []; scrivi('da-mandare', daMandare); $('famiglia-attesa').hidden = true; });
@@ -557,7 +567,7 @@ textarea { resize: vertical }
     $('scorte-tag').textContent = poche.length ? 'Stanno per finire' : 'Da ritirare in farmacia';
     $('scorte-testo').textContent = (poche.length ? poche.map(function (m) {
       return m.nome + ': ' + durata(m).toLowerCase() + (m.richiesta ? ', ricetta già richiesta' : '') + '.';
-    }).join(' ') + ' ' + (daChiedere.length ? CONSIGLIO : 'Quando compri le scatole, in «Le mie medicine» premi «Scatola».') : '') +
+    }).join(' ') + ' ' + (daChiedere.length ? CONSIGLIO : 'Quando compri le scatole, in «Elenco medicine» premi «Scatola».') : '') +
       (daRitirare.length ? (poche.length ? ' ' : '') + 'Ricetta richiesta da qualche giorno per ' + daRitirare.map(function (m) { return m.nome; }).join(', ') +
         ': ricordati di passare in farmacia, poi registra le scatole con «Scatola».' : '');
     $('scorte-ricetta').hidden = !daChiedere.length; $('scorte-segna').hidden = !daChiedere.length;
@@ -640,7 +650,7 @@ textarea { resize: vertical }
   // --- riepilogo ---
   // Un testo semplice con scorte e dosi di tutte le medicine, da leggere o da mandare (medico, farmacia, famiglia).
   function riepilogo() {
-    return 'Le mie medicine, ' + new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) + ':\n' +
+    return titoloApp() + ', ' + new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) + ':\n' +
       medicine.map(function (m) {
         var r = restano(m), g = bastano(m);
         return '• ' + m.nome + (m.serve ? ', per ' + m.serve.toLowerCase() : '') + ': ' + (r === 1 ? 'resta ' : 'restano ') + quante(m, r) + ', ' + quando(m) +
@@ -689,7 +699,7 @@ textarea { resize: vertical }
     var righe = medicine.filter(function (m) { return scatole[m.id] > 0; }).map(function (m) {
       return '• ' + m.nome + ': ' + (scatole[m.id] === 1 ? '1 scatola' : scatole[m.id] + ' scatole');
     });
-    return righe.length ? 'Buongiorno dottore, le chiedo la ricetta per:\n' + righe.join('\n') + '\nGrazie.' : '';
+    return righe.length ? 'Buongiorno dottore, le chiedo la ricetta' + (nomePersona() ? ' per ' + nomePersona() : '') + ':\n' + righe.join('\n') + '\nGrazie.' : '';
   }
   $('ricetta-apri').addEventListener('click', function () {
     scatole = {}; medicine.forEach(function (m) { scatole[m.id] = proposta(m); });
@@ -946,7 +956,7 @@ textarea { resize: vertical }
   });
   $('diario-chiudi').addEventListener('click', function () { $('diario').hidden = true; $('diario-apri').hidden = false; });
   $('diario-condividi').addEventListener('click', function () {
-    var giorno = '', righe = ['Diario delle dosi (ultimi 14 giorni):'];
+    var giorno = '', righe = ['Diario delle dosi' + (nomePersona() ? ' di ' + nomePersona() : '') + ' (ultimi 14 giorni):'];
     vociDiario().forEach(function (e) {
       if (e.g !== giorno) { giorno = e.g; righe.push('', etichettaGiorno(e.g)); }
       righe.push('• ' + e.ora + ' ' + e.nome + ': ' + esitoTesto(e));
@@ -992,7 +1002,7 @@ textarea { resize: vertical }
   });
   $('note-condividi').addEventListener('click', function () {
     var righe = note.filter(function (n) { return !n.fatta; }).sort(function (a, b) { return a.id - b.id; }).map(function (n) { return '• ' + n.testo; });
-    condividi('Da chiedere al dottore', 'Da chiedere al dottore:\n' + righe.join('\n'));
+    condividi('Da chiedere al dottore', 'Da chiedere al dottore' + (nomePersona() ? ' (' + nomePersona() + ')' : '') + ':\n' + righe.join('\n'));
   });
   $('note-pulisci').addEventListener('click', function () {
     var tolte = note.filter(function (n) { return n.fatta; });
@@ -1012,8 +1022,9 @@ textarea { resize: vertical }
   }
   $('copia-salva').addEventListener('click', function () {
     var testo = JSON.stringify({ app: 'le-mie-medicine', versione: 1, salvata: iso(new Date()), lista: medicine, dottore: dottore(),
-      famiglia: numeroFamiglia(), diario: diario, note: note }, null, 1);
-    var nome = 'medicine-copia-' + iso(new Date()) + '.json', file = null;
+      famiglia: numeroFamiglia(), diario: diario, note: note, persona: nomePersona() }, null, 1);
+    var chi = nomePersona().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    var nome = 'medicine-' + (chi ? chi + '-' : '') + 'copia-' + iso(new Date()) + '.json', file = null;
     try { file = new File([testo], nome, { type: 'application/json' }); } catch (e) {}
     function fatto() { scrivi('copia-data', iso(new Date())); aggiornaCopia(); avviso('Copia salvata. Conservala in un posto sicuro.'); }
     if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -1046,10 +1057,33 @@ textarea { resize: vertical }
     if (typeof d.famiglia === 'string') scrivi('famiglia', d.famiglia);
     diario = Array.isArray(d.diario) ? d.diario : []; scrivi('diario', diario);
     if (Array.isArray(d.note)) { note = d.note; salvaNote(); }
+    if (typeof d.persona === 'string') { scrivi('persona', d.persona); aggiornaNome(); }
     daRipristinare = null; $('copia-conferma').hidden = true;
     salva(); avviso('Copia ripristinata: ' + (medicine.length === 1 ? '1 medicina.' : medicine.length + ' medicine.'));
   });
   aggiornaCopia();
+
+  // --- di chi sono le medicine ---
+  // Con il nome, il titolo diventa «Le medicine di …» e il nome compare nei messaggi che escono dall'app.
+  function nomePersona() { return leggi('persona', ''); }
+  function titoloApp() { return nomePersona() ? 'Le medicine di ' + nomePersona() : 'Le mie medicine'; }
+  function aggiornaNome() {
+    $('titolo').textContent = titoloApp(); document.title = titoloApp();
+    $('nome-cambia').textContent = nomePersona() ? 'Cambia nome' : 'Scrivi il nome di chi le prende';
+  }
+  $('nome-cambia').addEventListener('click', function () {
+    $('nome-form').hidden = false; $('nome-cambia').hidden = true;
+    $('nome-persona').value = nomePersona(); $('nome-persona').focus();
+  });
+  $('nome-annulla').addEventListener('click', function () { $('nome-form').hidden = true; $('nome-cambia').hidden = false; });
+  $('nome-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var nome = $('nome-persona').value.trim().replace(/\s+/g, ' ');
+    scrivi('persona', nome);
+    $('nome-form').hidden = true; $('nome-cambia').hidden = false; aggiornaNome(); disegna();
+    avviso(nome ? 'Fatto: ora sono «Le medicine di ' + nome + '».' : 'Nome tolto.');
+  });
+  aggiornaNome();
 
   // --- Telegram ---
   // Se l'app è servita dal suo server con un bot di Telegram, gli avvisi arrivano anche con l'app chiusa:
