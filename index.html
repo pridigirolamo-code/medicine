@@ -158,6 +158,12 @@ textarea { resize: vertical }
     </form>
   </div>
 
+  <div class="panel" id="notifiche-avviso" hidden>
+    <span class="tag">Notifiche</span>
+    <p>Attiva le notifiche: all'ora di ogni medicina ti avviso anche con l'app chiusa, e ripeto l'avviso finché non premi «L'ho presa» o «Saltata».</p>
+    <button class="btn" type="button" id="notifiche-attiva">Attiva le notifiche</button>
+  </div>
+
   <div class="panel warn" id="dosi-avviso" role="status" hidden>
     <span class="tag">È ora della medicina</span>
     <ul class="list" id="dosi-lista"></ul>
@@ -195,7 +201,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Elenco medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 25</p>
+  <p class="foot">Con le notifiche attive, l'avviso dell'ora della medicina arriva anche con l'app chiusa e si ripete finché non premi «L'ho presa» o «Saltata». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 26</p>
 </section>
 
 <!-- ELENCO -->
@@ -363,9 +369,7 @@ textarea { resize: vertical }
 
   <div class="panel" id="telegram" hidden>
     <h2>Su Telegram</h2>
-    <p class="muted">Con Telegram gli avvisi arrivano anche quando questa app è chiusa.</p>
-    <p id="tg-me"></p>
-    <a class="btn" id="tg-collega" target="_blank" rel="noopener">Collega il mio Telegram</a>
+    <p class="muted">I familiari collegati ricevono da soli, su Telegram, un avviso se una dose non viene segnata entro mezz'ora o se una medicina sta per finire.</p>
     <p id="tg-famiglia"></p>
     <button class="btn ghost" type="button" id="tg-invita">Manda il collegamento alla famiglia</button>
   </div>
@@ -906,6 +910,10 @@ textarea { resize: vertical }
       li.appendChild(corpo); li.appendChild(tasti); ul.appendChild(li);
     });
     $('dosi-avviso').hidden = !dosi.length;
+    // Nessuna dose in attesa: tolgo dal telefono le notifiche delle medicine rimaste nel centro notifiche.
+    if (!dosi.length && 'serviceWorker' in navigator) navigator.serviceWorker.getRegistration().then(function (r) {
+      if (r && r.getNotifications) return r.getNotifications({ tag: 'medicina' }).then(function (l) { l.forEach(function (n) { n.close(); }); });
+    }).catch(function () {});
     // Dopo mezz'ora senza «L'ho presa» preparo l'avviso per la famiglia, una volta sola per ogni dose.
     if (numeroFamiglia() && !serverAvvisa) {
       var adesso = minuti(oraAdesso()), giaDette = g.famiglia || [];
@@ -1098,11 +1106,52 @@ textarea { resize: vertical }
   // Pubblicata su GitHub, l'app parla con il server online; servita dal suo server (in casa) usa quello.
   var SERVIZIO = /\.github\.io$/.test(location.hostname) ? 'https://medicine-server-production.up.railway.app/' : '';
   var serverAvvisa = leggi('server-avvisa', false), applicate = leggi('applicate', []), senzaServizio = false, bot = '';
+  // --- notifiche dell'app ---
+  // Il server, all'ora della medicina, sveglia il telefono e la notifica compare anche con l'app chiusa.
+  // Funziona con l'app aperta dall'icona della Home (su iPhone serve iOS 16.4 o successivo).
+  function registrazione() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return Promise.reject(new Error('non disponibili'));
+    return Promise.race([navigator.serviceWorker.ready, new Promise(function (ok, no) { setTimeout(function () { no(new Error('tempo scaduto')); }, 4000); })]);
+  }
+  function iscrizione() {
+    return registrazione().then(function (r) { return r.pushManager.getSubscription(); }).catch(function () { return null; });
+  }
+  function chiaveDaTesto(t) {
+    var b = atob(t.replace(/-/g, '+').replace(/_/g, '/')), a = new Uint8Array(b.length);
+    for (var i = 0; i < b.length; i++) a[i] = b.charCodeAt(i);
+    return a;
+  }
+  function notificheDisponibili() { return 'Notification' in window && 'PushManager' in window && 'serviceWorker' in navigator; }
+  // Iscrive il telefono alle notifiche del server (serve il permesso già dato).
+  function iscriviti() {
+    return Promise.all([registrazione(), fetch(SERVIZIO + 'api/push-chiave').then(function (r) { return r.json(); })]).then(function (v) {
+      var opzioni = { userVisibleOnly: true, applicationServerKey: chiaveDaTesto(v[1].chiave) };
+      // Se il server ha cambiato chiave, l'iscrizione vecchia va tolta prima di rifarla.
+      return v[0].pushManager.subscribe(opzioni).catch(function () {
+        return v[0].pushManager.getSubscription().then(function (s) { return s && s.unsubscribe(); }).then(function () { return v[0].pushManager.subscribe(opzioni); });
+      });
+    }).then(function () { sincronizza(); disegnaNotifiche(); });
+  }
+  function disegnaNotifiche() {
+    if (!notificheDisponibili() || senzaServizio) { $('notifiche-avviso').hidden = true; return; }
+    iscrizione().then(function (s) { $('notifiche-avviso').hidden = !!(s && Notification.permission === 'granted'); });
+  }
+  $('notifiche-attiva').addEventListener('click', function () {
+    // Il permesso si può chiedere solo dopo un tocco: per questo c'è il tasto.
+    Promise.resolve(Notification.requestPermission()).then(function (p) {
+      if (p !== 'granted') { avviso('Notifiche non permesse: puoi attivarle dalle Impostazioni del telefono.'); return; }
+      return iscriviti().then(function () { avviso('Notifiche attive: ti avviso all\'ora di ogni medicina.'); });
+    }).catch(function () { avviso('Non riesco ad attivare le notifiche su questo telefono.'); });
+  });
+
   function sincronizza() {
     if (senzaServizio) return;
     var g = giornata();
-    fetch(SERVIZIO + 'api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, invito: INVITO,
-      medicine: medicine, giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate }) })
+    iscrizione().then(function (s) {
+      return fetch(SERVIZIO + 'api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, invito: INVITO,
+        medicine: medicine, giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate,
+        push: s && Notification.permission === 'granted' ? { endpoint: s.endpoint } : null }) });
+    })
       .then(function (r) {
         // Senza server (per esempio su un sito di soli file) l'app resta com'è e smette di chiedere.
         if (r.status === 404 || r.status === 405) senzaServizio = true;
@@ -1114,8 +1163,6 @@ textarea { resize: vertical }
         serverAvvisa = !!(tg && tg.famiglia > 0); scrivi('server-avvisa', serverAvvisa);
         $('telegram').hidden = !tg;
         if (tg) {
-          $('tg-me').textContent = (tg.paziente ? 'Il tuo Telegram è collegato: ti scrivo lì' : 'Collega il tuo Telegram: ti scrivo lì') + ' quando è ora di una medicina, con il tasto «L\'ho presa».';
-          $('tg-collega').hidden = tg.paziente; $('tg-collega').href = 'https://t.me/' + bot + '?start=p_' + INVITO;
           $('tg-famiglia').textContent = tg.famiglia === 0 ? 'Nessun familiare collegato. Manda il collegamento a chi deve ricevere gli avvisi.'
             : tg.famiglia === 1 ? '1 familiare collegato: riceve gli avvisi da solo.' : tg.famiglia + ' familiari collegati: ricevono gli avvisi da soli.';
         }
@@ -1141,6 +1188,9 @@ textarea { resize: vertical }
   });
 
   function giro() { chiudiGiornata(); disegna(); controllaDosi(); sincronizza(); }
+  // All'avvio: se il permesso c'è già ma manca l'iscrizione (per esempio dopo un aggiornamento), la rifaccio da solo.
+  disegnaNotifiche();
+  if (notificheDisponibili() && Notification.permission === 'granted') iscrizione().then(function (s) { if (!s) iscriviti().catch(function () {}); });
   setInterval(giro, 30000);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) giro(); });
 
