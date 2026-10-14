@@ -124,6 +124,9 @@ textarea { resize: vertical }
 .item.warn { background: var(--warn-soft); border-color: var(--warn) }
 .item .body { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere }
 .item .name { font-family: var(--display); font-weight: 700 }
+/* A cosa serve: un'etichetta piccola accanto al nome */
+.uso { display: inline-block; font-family: var(--body); font-weight: 700; font-size: 0.78rem; color: var(--blue);
+  border: 1.5px solid var(--blue); border-radius: 999px; padding: 0 8px; vertical-align: 2px }
 .item .when { font-family: var(--display); font-weight: 700; color: var(--pills); font-variant-numeric: tabular-nums; font-size: 0.95rem }
 .item .muted { font-size: 0.9rem }
 
@@ -182,7 +185,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 21</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 22</p>
 </section>
 
 <!-- ELENCO -->
@@ -297,6 +300,13 @@ textarea { resize: vertical }
   <h2 id="form-titolo">Aggiungi una medicina</h2>
   <form class="panel" id="medicine-form">
     <div><label for="med-nome">Come si chiama?</label><input type="text" id="med-nome" placeholder="Per esempio: Cardioaspirina" required></div>
+    <div><label for="med-serve">A cosa serve? <span class="muted">(facoltativo)</span></label>
+      <input type="text" id="med-serve" list="usi-comuni" maxlength="40" autocomplete="off" placeholder="Per esempio: pressione">
+      <datalist id="usi-comuni">
+        <option value="Pressione"><option value="Colesterolo"><option value="Glicemia (diabete)"><option value="Cuore">
+        <option value="Fluidificare il sangue"><option value="Stomaco"><option value="Tiroide"><option value="Diuretico">
+        <option value="Dolore"><option value="Prostata"><option value="Ossa"><option value="Vitamine e integratori">
+      </datalist></div>
     <div><label for="med-tipo">Che tipo è?</label>
       <select id="med-tipo">
         <option value="pastiglie">Pastiglie</option>
@@ -499,6 +509,7 @@ textarea { resize: vertical }
       var r = restano(m), li = document.createElement('li'); li.className = 'item' + (bastano(m) <= SOGLIA ? ' warn' : '');
       var corpo = document.createElement('div'); corpo.className = 'body';
       var n = document.createElement('div'); n.className = 'name'; n.textContent = m.nome;
+      if (m.serve) { var uso = document.createElement('span'); uso.className = 'uso'; uso.textContent = m.serve; n.appendChild(document.createTextNode(' ')); n.appendChild(uso); }
       var o = document.createElement('div'); o.className = 'when';
       o.textContent = quando(m) + (m.orari.length ? ' · ore ' + m.orari.join(', ') : '');
       var d = document.createElement('div');
@@ -569,7 +580,7 @@ textarea { resize: vertical }
     inModifica = m;
     $('med-nome').value = m.nome; $('med-tipo').value = m.tipo; $('med-algiorno').value = m.alGiorno;
     $('med-rimaste').value = Math.round(restano(m) * 100) / 100;
-    $('med-scatola').value = m.scatola || ''; $('med-note').value = m.note || '';
+    $('med-scatola').value = m.scatola || ''; $('med-note').value = m.note || ''; $('med-serve').value = m.serve || '';
     ORARI.forEach(function (id, i) { $(id).value = m.orari[i] || ''; });
     document.querySelectorAll('#med-giorni input').forEach(function (c) { c.checked = !m.giorni || m.giorni.indexOf(+c.value) >= 0; });
     $('form-titolo').textContent = 'Modifica la medicina'; $('med-annulla').hidden = false;
@@ -618,7 +629,7 @@ textarea { resize: vertical }
     return 'Le mie medicine, ' + new Date().toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' }) + ':\n' +
       medicine.map(function (m) {
         var r = restano(m), g = bastano(m);
-        return '• ' + m.nome + ': ' + (r === 1 ? 'resta ' : 'restano ') + quante(m, r) + ', ' + quando(m) +
+        return '• ' + m.nome + (m.serve ? ', per ' + m.serve.toLowerCase() : '') + ': ' + (r === 1 ? 'resta ' : 'restano ') + quante(m, r) + ', ' + quando(m) +
           (m.orari.length ? ' (ore ' + m.orari.join(', ') + ')' : '') + ', ' + (g <= 0 ? 'è finita' : g === 1 ? 'basta per 1 giorno' : 'basta per ' + g + ' giorni') + '.';
       }).join('\n');
   }
@@ -738,7 +749,7 @@ textarea { resize: vertical }
     medicine = medicine.filter(function (m) { return m !== inModifica && m !== stessoNome; });
     // Tengo lo stesso identificativo, così le dosi già segnate oggi restano segnate.
     medicine.push({ id: vecchia ? vecchia.id : Date.now(), nome: nome, tipo: $('med-tipo').value, alGiorno: alGiorno, rimaste: rimaste,
-      note: $('med-note').value.trim() || undefined,
+      note: $('med-note').value.trim() || undefined, serve: $('med-serve').value.trim() || undefined,
       scatola: Math.round(+$('med-scatola').value) > 0 ? Math.round(+$('med-scatola').value) : 0,
       dal: iso(new Date()), orari: orari, giorni: giorni, dalleOre: oraAdesso(), calendario: !!(vecchia && vecchia.calendario),
       // La ricetta chiesta resta segnata, a meno che le scorte non siano state aumentate a mano.
