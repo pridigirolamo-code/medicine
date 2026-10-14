@@ -71,7 +71,15 @@ a.btn { display: grid; place-items: center; text-decoration: none }
 .tre { display: flex; gap: 8px }
 .tre .btn { flex: 1; font-size: 1.4rem }
 .pair { display: flex; gap: 8px; flex-wrap: wrap }
-.pair > * { flex: 1 1 140px }
+.pair > * { flex: 1 1 140px; display: flex; flex-direction: column; justify-content: flex-end }
+/* Orari: la scritta a sinistra, la casella dell'ora a destra, una riga per orario */
+.orari { display: flex; flex-direction: column; gap: 6px }
+.orario { display: grid; grid-template-columns: 1fr 128px; align-items: center; gap: 8px }
+.orario label { margin: 0 }
+.orario .muted { font-weight: 400 }
+/* Su iPhone la casella dell'ora ha una larghezza sua e usciva dal riquadro: la riporto alla larghezza della colonna */
+input[type=time] { -webkit-appearance: none; appearance: none; min-width: 0; display: block; text-align: left }
+input { min-width: 0 }
 
 label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.95rem }
 input[type=text], input[type=tel], input[type=email], input[type=number], input[type=time], select { width: 100%; background: var(--surface);
@@ -159,7 +167,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 18</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 19</p>
 </section>
 
 <!-- ELENCO -->
@@ -253,10 +261,10 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
         <label class="giorno"><input type="checkbox" value="0" checked><span>Dom</span></label>
       </div>
     </fieldset>
-    <div class="pair">
-      <div><label for="med-ora1">A che ora la prendi?</label><input type="time" id="med-ora1"></div>
-      <div><label for="med-ora2">Secondo orario (se serve)</label><input type="time" id="med-ora2"></div>
-      <div><label for="med-ora3">Terzo orario (se serve)</label><input type="time" id="med-ora3"></div>
+    <div class="orari">
+      <div class="orario"><label for="med-ora1">A che ora la prendi?</label><input type="time" id="med-ora1"></div>
+      <div class="orario"><label for="med-ora2">Secondo orario <span class="muted">(se serve)</span></label><input type="time" id="med-ora2"></div>
+      <div class="orario"><label for="med-ora3">Terzo orario <span class="muted">(se serve)</span></label><input type="time" id="med-ora3"></div>
     </div>
     <button class="btn" type="submit">Salva</button>
     <button class="btn ghost" type="button" id="med-annulla" hidden>Annulla</button>
