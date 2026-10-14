@@ -185,7 +185,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 22</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 23</p>
 </section>
 
 <!-- ELENCO -->
@@ -300,13 +300,15 @@ textarea { resize: vertical }
   <h2 id="form-titolo">Aggiungi una medicina</h2>
   <form class="panel" id="medicine-form">
     <div><label for="med-nome">Come si chiama?</label><input type="text" id="med-nome" placeholder="Per esempio: Cardioaspirina" required></div>
-    <div><label for="med-serve">A cosa serve? <span class="muted">(facoltativo)</span></label>
-      <input type="text" id="med-serve" list="usi-comuni" maxlength="40" autocomplete="off" placeholder="Per esempio: pressione">
-      <datalist id="usi-comuni">
-        <option value="Pressione"><option value="Colesterolo"><option value="Glicemia (diabete)"><option value="Cuore">
-        <option value="Fluidificare il sangue"><option value="Stomaco"><option value="Tiroide"><option value="Diuretico">
-        <option value="Dolore"><option value="Prostata"><option value="Ossa"><option value="Vitamine e integratori">
-      </datalist></div>
+    <div><label for="med-serve-scelta">A cosa serve? <span class="muted">(facoltativo)</span></label>
+      <select id="med-serve-scelta">
+        <option value="">Scegli…</option>
+        <option>Pressione</option><option>Colesterolo</option><option>Glicemia (diabete)</option><option>Cuore</option>
+        <option>Fluidificare il sangue</option><option>Stomaco</option><option>Tiroide</option><option>Diuretico</option>
+        <option>Dolore</option><option>Prostata</option><option>Ossa</option><option>Vitamine e integratori</option>
+        <option value="altro">Altro (scrivi tu)</option>
+      </select>
+      <input type="text" id="med-serve" maxlength="40" autocomplete="off" placeholder="Scrivi a cosa serve" aria-label="A cosa serve" hidden style="margin-top: 6px"></div>
     <div><label for="med-tipo">Che tipo è?</label>
       <select id="med-tipo">
         <option value="pastiglie">Pastiglie</option>
@@ -580,7 +582,7 @@ textarea { resize: vertical }
     inModifica = m;
     $('med-nome').value = m.nome; $('med-tipo').value = m.tipo; $('med-algiorno').value = m.alGiorno;
     $('med-rimaste').value = Math.round(restano(m) * 100) / 100;
-    $('med-scatola').value = m.scatola || ''; $('med-note').value = m.note || ''; $('med-serve').value = m.serve || '';
+    $('med-scatola').value = m.scatola || ''; $('med-note').value = m.note || ''; impostaServe(m.serve || '');
     ORARI.forEach(function (id, i) { $(id).value = m.orari[i] || ''; });
     document.querySelectorAll('#med-giorni input').forEach(function (c) { c.checked = !m.giorni || m.giorni.indexOf(+c.value) >= 0; });
     $('form-titolo').textContent = 'Modifica la medicina'; $('med-annulla').hidden = false;
@@ -617,8 +619,20 @@ textarea { resize: vertical }
         function () { m.rimaste = prima.rimaste; m.dal = prima.dal; m.scatola = prima.scatola; if (prima.richiesta) m.richiesta = prima.richiesta; salva(); });
     });
   });
+  // «A cosa serve»: un menu con le voci più comuni; «Altro» apre la casella per scriverlo.
+  function impostaServe(valore) {
+    var voci = Array.prototype.map.call($('med-serve-scelta').options, function (o) { return o.value; });
+    var tra = !valore || (voci.indexOf(valore) >= 0 && valore !== 'altro');
+    $('med-serve-scelta').value = tra ? valore : 'altro';
+    $('med-serve').value = tra ? '' : valore; $('med-serve').hidden = tra;
+  }
+  function leggiServe() { var s = $('med-serve-scelta').value; return s === 'altro' ? $('med-serve').value.trim() : s; }
+  $('med-serve-scelta').addEventListener('change', function () {
+    $('med-serve').hidden = this.value !== 'altro';
+    if (this.value === 'altro') $('med-serve').focus();
+  });
   function chiudiModifica() {
-    inModifica = null; $('medicine-form').reset();
+    inModifica = null; $('medicine-form').reset(); $('med-serve').hidden = true;
     $('form-titolo').textContent = 'Aggiungi una medicina'; $('med-annulla').hidden = true;
   }
   $('med-annulla').addEventListener('click', function () { chiudiModifica(); torna(); });
@@ -749,7 +763,7 @@ textarea { resize: vertical }
     medicine = medicine.filter(function (m) { return m !== inModifica && m !== stessoNome; });
     // Tengo lo stesso identificativo, così le dosi già segnate oggi restano segnate.
     medicine.push({ id: vecchia ? vecchia.id : Date.now(), nome: nome, tipo: $('med-tipo').value, alGiorno: alGiorno, rimaste: rimaste,
-      note: $('med-note').value.trim() || undefined, serve: $('med-serve').value.trim() || undefined,
+      note: $('med-note').value.trim() || undefined, serve: leggiServe() || undefined,
       scatola: Math.round(+$('med-scatola').value) > 0 ? Math.round(+$('med-scatola').value) : 0,
       dal: iso(new Date()), orari: orari, giorni: giorni, dalleOre: oraAdesso(), calendario: !!(vecchia && vecchia.calendario),
       // La ricetta chiesta resta segnata, a meno che le scorte non siano state aumentate a mano.
