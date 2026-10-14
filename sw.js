@@ -1,6 +1,6 @@
 // Tiene una copia dell'app sul telefono, così si apre anche senza internet.
 // Cambiare VERSIONE a ogni aggiornamento dei file.
-var VERSIONE = 'medicine-24';
+var VERSIONE = 'medicine-25';
 var FILE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-180.png'];
 
 self.addEventListener('install', function (e) {
@@ -17,6 +17,7 @@ self.addEventListener('activate', function (e) {
 // cache: 'no-cache' chiede sempre al sito se il file è cambiato: senza, il telefono può usare per 10 minuti
 // la copia del browser e l'aggiornamento non si vede.
 self.addEventListener('fetch', function (e) {
+  // Le richieste al server online (altro indirizzo) passano dirette, senza copia.
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(fetch(e.request.url, { cache: 'no-cache' }).then(function (r) {
     var copia = r.clone();

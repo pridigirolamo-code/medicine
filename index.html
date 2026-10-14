@@ -195,7 +195,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Elenco medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 24</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Elenco medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 25</p>
 </section>
 
 <!-- ELENCO -->
@@ -1095,11 +1095,13 @@ textarea { resize: vertical }
   // DISPOSITIVO è la chiave segreta di questo telefono verso il server; INVITO è il codice che finisce nei collegamenti di Telegram.
   var DISPOSITIVO = leggi('dispositivo', '') || casuale(), INVITO = leggi('invito', '') || casuale();
   scrivi('dispositivo', DISPOSITIVO); scrivi('invito', INVITO);
+  // Pubblicata su GitHub, l'app parla con il server online; servita dal suo server (in casa) usa quello.
+  var SERVIZIO = /\.github\.io$/.test(location.hostname) ? 'https://medicine-server-production.up.railway.app/' : '';
   var serverAvvisa = leggi('server-avvisa', false), applicate = leggi('applicate', []), senzaServizio = false, bot = '';
   function sincronizza() {
     if (senzaServizio) return;
     var g = giornata();
-    fetch('api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, invito: INVITO,
+    fetch(SERVIZIO + 'api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, invito: INVITO,
       medicine: medicine, giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate }) })
       .then(function (r) {
         // Senza server (per esempio su un sito di soli file) l'app resta com'è e smette di chiedere.
