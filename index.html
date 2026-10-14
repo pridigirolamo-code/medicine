@@ -267,6 +267,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
   function scrivi(chiave, v) { try { localStorage.setItem('medicine.' + chiave, JSON.stringify(v)); } catch (e) {} }
 
   function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function giornoBreve(isoData) { var p = isoData.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' }); }
   function minuti(o) { var p = o.split(':'); return +p[0] * 60 + +p[1]; }
   function oraAdesso() { var d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
   function giorniDa(isoData) {
@@ -368,7 +369,7 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
       var o = document.createElement('div'); o.className = 'when';
       o.textContent = quante(m, m.alGiorno) + ' al giorno' + (m.orari.length ? ', ore ' + m.orari.join(', ') : '');
       var d = document.createElement('div');
-      d.textContent = (r === 1 ? 'Ti resta ' : 'Ti restano ') + quante(m, r) + '. ' + durata(m) + '.';
+      d.textContent = (r === 1 ? 'Ti resta ' : 'Ti restano ') + quante(m, r) + '. ' + durata(m) + '.' + (m.richiesta ? ' Ricetta già richiesta il ' + giornoBreve(m.richiesta) + '.' : '');
       corpo.appendChild(n); corpo.appendChild(o); corpo.appendChild(d);
       var nuova = document.createElement('button'); nuova.type = 'button'; nuova.className = 'btn ghost small'; nuova.textContent = 'Ho la scatola nuova';
       nuova.addEventListener('click', function () { apriScatola(m); });
@@ -397,8 +398,13 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     $('riepilogo-testo').textContent = riepilogo();
 
     var poche = medicine.filter(function (m) { return bastano(m) <= SOGLIA; });
+    // Se per tutte quelle che stanno per finire la ricetta è già stata chiesta, non propongo di chiederla di nuovo.
+    var daChiedere = poche.filter(function (m) { return !m.richiesta; });
     $('scorte-avviso').hidden = !poche.length;
-    $('scorte-testo').textContent = poche.map(function (m) { return m.nome + ': ' + durata(m).toLowerCase() + '.'; }).join(' ') + ' ' + CONSIGLIO;
+    $('scorte-testo').textContent = poche.map(function (m) {
+      return m.nome + ': ' + durata(m).toLowerCase() + (m.richiesta ? ' (ricetta già richiesta il ' + giornoBreve(m.richiesta) + ')' : '') + '.';
+    }).join(' ') + ' ' + (daChiedere.length ? CONSIGLIO : 'Ricetta già richiesta: quando compri le scatole, segnale con «Ho la scatola nuova» in «Le mie medicine».');
+    $('scorte-ricetta').hidden = !daChiedere.length;
     $('riass-medicine').textContent = !medicine.length ? 'Non hai ancora segnato nessuna medicina.'
       : (medicine.length === 1 ? '1 medicina' : medicine.length + ' medicine') + (poche.length === 0 ? ': le scorte bastano.'
         : poche.length === 1 ? ': 1 sta per finire.' : ': ' + poche.length + ' stanno per finire.');
@@ -445,14 +451,15 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
       var m = inScatola, n = +b.dataset.scatole, pezzi = Math.round(+$('scatola-pezzi').value);
       if (!m) return;
       if (!(pezzi > 0)) { avviso('Scrivi prima quante ce ne sono in una scatola.'); $('scatola-pezzi').focus(); return; }
-      var prima = { rimaste: m.rimaste, dal: m.dal, scatola: m.scatola };
-      m.rimaste = restano(m) + n * pezzi; m.scatola = pezzi;
+      var prima = { rimaste: m.rimaste, dal: m.dal, scatola: m.scatola, richiesta: m.richiesta };
+      // Sono arrivate le scatole: la ricetta chiesta è fatta.
+      m.rimaste = restano(m) + n * pezzi; m.scatola = pezzi; delete m.richiesta;
       // Senza orari la scorta scende da sola a partire da «dal»: riparto da oggi con il conto nuovo.
       if (contaDaSola(m)) m.dal = iso(new Date());
       chiudiScatola(); salva();
       var r = restano(m);
       avviso((n === 1 ? 'Aggiunta 1 scatola' : 'Aggiunte ' + n + ' scatole') + ': ' + (r === 1 ? 'ora ti resta ' : 'ora ti restano ') + quante(m, r) + '.',
-        function () { m.rimaste = prima.rimaste; m.dal = prima.dal; m.scatola = prima.scatola; salva(); });
+        function () { m.rimaste = prima.rimaste; m.dal = prima.dal; m.scatola = prima.scatola; if (prima.richiesta) m.richiesta = prima.richiesta; salva(); });
     });
   });
   function chiudiModifica() {
@@ -475,10 +482,11 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     $('riepilogo').hidden = false; $('riepilogo-apri').hidden = true; disegna(); $('riepilogo').scrollIntoView({ block: 'nearest' });
   });
   $('riepilogo-chiudi').addEventListener('click', function () { $('riepilogo').hidden = true; disegna(); });
+  // Risponde true se il testo è stato davvero condiviso o copiato (false se la persona ha chiuso il menu).
   function condividi(titolo, testo) {
-    if (navigator.share) { navigator.share({ title: titolo, text: testo }).catch(function () {}); return; }
-    try { navigator.clipboard.writeText(testo).then(function () { avviso('Testo copiato: incollalo dove vuoi.'); }); }
-    catch (e) { avviso('Non riesco a condividere da questo telefono: copia il testo a mano.'); }
+    if (navigator.share) return navigator.share({ title: titolo, text: testo }).then(function () { return true; }, function () { return false; });
+    try { return navigator.clipboard.writeText(testo).then(function () { avviso('Testo copiato: incollalo dove vuoi.'); return true; }); }
+    catch (e) { avviso('Non riesco a condividere da questo telefono: copia il testo a mano.'); return Promise.resolve(false); }
   }
   $('riepilogo-condividi').addEventListener('click', function () { condividi('Le mie medicine', riepilogo()); });
 
@@ -521,7 +529,13 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
   $('ricetta-condividi').addEventListener('click', function () {
     var testo = ricetta();
     if (!testo) { avviso('Non hai scelto nessuna scatola: aggiungine con +.'); return; }
-    condividi('Ricetta per il dottore', testo);
+    var chieste = medicine.filter(function (m) { return scatole[m.id] > 0; });
+    condividi('Ricetta per il dottore', testo).then(function (fatto) {
+      if (!fatto) return;
+      // Segno la ricetta come chiesta: finché non arrivano le scatole nuove non la ripropongo in prima pagina.
+      chieste.forEach(function (m) { m.richiesta = iso(new Date()); });
+      salva(); avviso('Segnato: ricetta già richiesta al dottore.');
+    });
   });
 
   $('medicine-form').addEventListener('submit', function (e) {
@@ -535,7 +549,9 @@ input[type=text], input[type=tel], input[type=number], input[type=time], select 
     // Tengo lo stesso identificativo, così le dosi già segnate oggi restano segnate.
     medicine.push({ id: vecchia ? vecchia.id : Date.now(), nome: nome, tipo: $('med-tipo').value, alGiorno: alGiorno, rimaste: rimaste,
       scatola: Math.round(+$('med-scatola').value) > 0 ? Math.round(+$('med-scatola').value) : 0,
-      dal: iso(new Date()), orari: orari, dalleOre: oraAdesso(), calendario: !!(vecchia && vecchia.calendario) });
+      dal: iso(new Date()), orari: orari, dalleOre: oraAdesso(), calendario: !!(vecchia && vecchia.calendario),
+      // La ricetta chiesta resta segnata, a meno che le scorte non siano state aumentate a mano.
+      richiesta: vecchia && vecchia.richiesta && rimaste <= restano(vecchia) ? vecchia.richiesta : undefined });
     var daAggiornare = vecchia && vecchia.calendario && (vecchia.nome !== nome || vecchia.orari.join() !== orari.join() || vecchia.alGiorno !== alGiorno);
     // Dopo il salvataggio mostro l'elenco: se venivo dall'elenco ci torno, altrimenti l'elenco prende il posto del modulo.
     chiudiModifica();
