@@ -19,7 +19,7 @@
   --pills: #0B6470; --ok: #14663A; --blue: #1B4F9C; --purple: #6A3C96; --warn: #8A5200; --warn-soft: #FFF0CC; --on-color: #FFFFFF;
   --display: "Lexend", "Trebuchet MS", Verdana, sans-serif;
   --body: "Atkinson Hyperlegible", Verdana, "Segoe UI", sans-serif;
-  --radius: 18px;
+  --radius: 12px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0E1622; --surface: #18222F; --ink: #F1F5FA; --muted: #B3C0D0; --line: #34445A;
@@ -31,75 +31,78 @@
   color-scheme: dark }
 
 * { box-sizing: border-box }
-body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 1.3rem; line-height: 1.45;
-  padding-inline: 16px; padding-block: 20px 40px }
-.app { max-width: 540px; margin-inline: auto; display: flex; flex-direction: column; gap: 20px }
-section { display: flex; flex-direction: column; gap: 18px }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 1.05rem; line-height: 1.4;
+  padding-inline: 14px; padding-block: 14px 32px }
+.app { max-width: 540px; margin-inline: auto; display: flex; flex-direction: column; gap: 14px }
+section { display: flex; flex-direction: column; gap: 12px }
 h1, h2 { font-family: var(--display); font-weight: 700; margin: 0; text-wrap: balance; line-height: 1.15 }
-h1 { font-size: 2.2rem }
-h2 { font-size: 1.8rem }
+h1 { font-size: 1.6rem }
+h2 { font-size: 1.3rem }
 p { margin: 0 }
 .muted { color: var(--muted) }
-.today { font-size: 1.4rem; color: var(--muted) }
+.today { font-size: 1rem; color: var(--muted) }
 .today::first-letter { text-transform: uppercase }
 
 button, input, select { font: inherit; color: inherit }
 button { cursor: pointer }
-:focus-visible { outline: 4px solid var(--ink); outline-offset: 3px }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px }
 
-.btn { border: 0; border-radius: var(--radius); padding: 18px 20px; min-height: 72px; font-weight: 700; font-size: 1.35rem;
+.btn { border: 0; border-radius: var(--radius); padding: 10px 14px; min-height: 46px; font-weight: 700; font-size: 1.05rem;
   color: var(--on-color); background: var(--pills); width: 100%; text-align: center }
-.btn.ghost { background: var(--surface); color: var(--ink); border: 2px solid var(--line) }
+.btn.ghost { background: var(--surface); color: var(--ink); border: 1.5px solid var(--line) }
 .btn.ok { background: var(--ok) }
 a.btn { display: grid; place-items: center; text-decoration: none }
-.btn.small { min-height: 56px; padding: 10px 16px; font-size: 1.1rem; width: auto }
-.btn.conta { min-width: 72px; font-size: 1.7rem; line-height: 1 }
+.btn.small { min-height: 36px; padding: 4px 10px; font-size: 0.92rem; width: auto }
+.btn.conta { min-width: 42px; font-size: 1.3rem; line-height: 1 }
 /* Riquadri della prima pagina e tasto per tornare */
-.menu { display: flex; flex-direction: column; gap: 14px }
-.row { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 14px;
-  display: flex; align-items: center; gap: 14px; text-align: left; width: 100%; min-height: 84px }
+.menu { display: flex; flex-direction: column; gap: 8px }
+.row { background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 10px 12px;
+  display: flex; align-items: center; gap: 12px; text-align: left; width: 100%; min-height: 60px }
 .row:hover { border-color: var(--ink) }
-.row .ico { width: 58px; height: 58px; border-radius: 14px; flex: none; display: grid; place-items: center; color: var(--on-color) }
-.row .ico svg { width: 36px; height: 36px }
+.row .ico { width: 40px; height: 40px; border-radius: 10px; flex: none; display: grid; place-items: center; color: var(--on-color) }
+.row .ico svg { width: 26px; height: 26px }
 .row .txt { min-width: 0 }
-.row strong { font-family: var(--display); font-size: 1.5rem; display: block; line-height: 1.15 }
-.row span { color: var(--muted); font-size: 1.1rem }
+.row strong { font-family: var(--display); font-size: 1.1rem; display: block; line-height: 1.2 }
+.row span { color: var(--muted); font-size: 0.9rem }
 .c-pills { background: var(--pills) } .c-ok { background: var(--ok) } .c-blue { background: var(--blue) } .c-purple { background: var(--purple) }
-.back { background: var(--surface); border: 2px solid var(--ink); border-radius: 999px; padding: 12px 22px;
-  font-weight: 700; align-self: flex-start; min-height: 60px; display: flex; align-items: center; gap: 10px }
-.back svg { width: 28px; height: 28px }
-.tre { display: flex; gap: 12px }
-.tre .btn { flex: 1; font-size: 2rem }
-.pair { display: flex; gap: 12px; flex-wrap: wrap }
-.pair > * { flex: 1 1 200px }
+.back { background: var(--surface); border: 1.5px solid var(--ink); border-radius: 999px; padding: 4px 14px 4px 8px;
+  font-weight: 700; font-size: 0.95rem; align-self: flex-start; min-height: 36px; display: flex; align-items: center; gap: 4px }
+.back svg { width: 20px; height: 20px }
+.tre { display: flex; gap: 8px }
+.tre .btn { flex: 1; font-size: 1.4rem }
+.pair { display: flex; gap: 8px; flex-wrap: wrap }
+.pair > * { flex: 1 1 140px }
 
-label { font-weight: 700; display: block; margin-bottom: 6px }
+label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.95rem }
 input[type=text], input[type=tel], input[type=email], input[type=number], input[type=time], select { width: 100%; background: var(--surface);
-  border: 2px solid var(--muted); border-radius: 14px; padding: 14px; min-height: 64px; font-size: 1.3rem }
+  border: 1.5px solid var(--muted); border-radius: 10px; padding: 8px 10px; min-height: 44px; font-size: 1.05rem }
 
-.panel { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 20px;
-  display: flex; flex-direction: column; gap: 14px }
-.panel.warn { background: var(--warn-soft); border-color: var(--warn); padding: 14px 16px; gap: 10px }
-.panel.warn p { font-size: 1.15rem }
-/* Dose da prendere: nome e ora a sinistra, «L'ho presa» a destra, su una riga sola */
-.item.dose { flex-wrap: nowrap; padding: 10px 12px; gap: 10px }
-.item.dose .body { flex: 1 1 auto; font-size: 1.15rem }
-.item.dose .btn { flex: none }
-.tag { font-size: 0.95rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700 }
+.panel { background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 10px }
+.panel.warn { background: var(--warn-soft); border-color: var(--warn) }
+/* Righe con il tasto a destra: dose da prendere, scatole della ricetta */
+.item.dose, .item.riga { flex-wrap: nowrap }
+.item.dose .body, .item.riga .body { flex: 1 1 auto }
+.item.dose .btn, .item.riga .btn { flex: none }
+/* Tasti di ogni medicina: una riga sola sotto le scritte */
+.azioni { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; width: 100% }
+.azioni .btn.small { width: 100%; padding: 4px 2px; font-size: 0.86rem; white-space: nowrap }
+.tag { font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700 }
 
-.list { display: flex; flex-direction: column; gap: 12px; list-style: none; margin: 0; padding: 0 }
-.item { background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 16px;
-  display: flex; gap: 14px; align-items: center; flex-wrap: wrap }
+.list { display: flex; flex-direction: column; gap: 8px; list-style: none; margin: 0; padding: 0 }
+.item { background: var(--surface); border: 1.5px solid var(--line); border-radius: var(--radius); padding: 10px 12px;
+  display: flex; gap: 8px; align-items: center; flex-wrap: wrap }
 .item.warn { background: var(--warn-soft); border-color: var(--warn) }
 .item .body { flex: 1 1 220px; min-width: 0; overflow-wrap: anywhere }
 .item .name { font-family: var(--display); font-weight: 700 }
-.item .when { font-family: var(--display); font-weight: 700; color: var(--pills); font-variant-numeric: tabular-nums }
+.item .when { font-family: var(--display); font-weight: 700; color: var(--pills); font-variant-numeric: tabular-nums; font-size: 0.95rem }
+.item .muted { font-size: 0.9rem }
 
 .toast { position: fixed; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 508px;
-  margin-inline: auto; background: var(--ink); color: var(--bg); border-radius: var(--radius); padding: 16px 20px;
+  margin-inline: auto; background: var(--ink); color: var(--bg); border-radius: var(--radius); padding: 10px 14px; font-size: 0.95rem;
   display: flex; gap: 14px; align-items: center; justify-content: space-between; font-weight: 700 }
 .toast button { background: var(--bg); color: var(--ink); border: 0; border-radius: 999px; padding: 10px 18px; font-weight: 700 }
-.foot { font-size: 1rem; color: var(--muted); border-top: 2px solid var(--line); padding-top: 14px }
+.foot { font-size: 0.82rem; color: var(--muted); border-top: 1.5px solid var(--line); padding-top: 10px }
 </style>
 </head>
 <body>
@@ -146,11 +149,11 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Metti nel calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 16</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 17</p>
 </section>
 
 <!-- ELENCO -->
-<section id="elenco" hidden>
+<section id="elenco" class="compatta" hidden>
   <button class="back" type="button" data-go="casa"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Torna all'inizio</button>
   <h2>Le mie medicine</h2>
 
@@ -174,7 +177,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
 </section>
 
 <!-- RIEPILOGHI -->
-<section id="riepiloghi" hidden>
+<section id="riepiloghi" class="compatta" hidden>
   <button class="back" type="button" data-go="casa"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Torna all'inizio</button>
   <h2>Riepiloghi</h2>
   <p class="muted" id="riepiloghi-vuoto" hidden>Prima aggiungi le tue medicine: poi qui trovi il riepilogo e la ricetta per il dottore.</p>
@@ -378,11 +381,11 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
       var corpo = document.createElement('div'); corpo.className = 'body';
       var n = document.createElement('div'); n.className = 'name'; n.textContent = m.nome;
       var o = document.createElement('div'); o.className = 'when';
-      o.textContent = quante(m, m.alGiorno) + ' al giorno' + (m.orari.length ? ', ore ' + m.orari.join(', ') : '');
+      o.textContent = quante(m, m.alGiorno) + ' al giorno' + (m.orari.length ? ' · ore ' + m.orari.join(', ') : '');
       var d = document.createElement('div');
-      d.textContent = (r === 1 ? 'Ti resta ' : 'Ti restano ') + quante(m, r) + '. ' + durata(m) + '.' + (m.richiesta ? ' Ricetta già richiesta il ' + giornoBreve(m.richiesta) + '.' : '');
+      d.textContent = (r === 1 ? 'Resta ' : 'Restano ') + quante(m, r) + ' · ' + durata(m).toLowerCase() + (m.richiesta ? ' · ricetta richiesta il ' + giornoBreve(m.richiesta) : '');
       corpo.appendChild(n); corpo.appendChild(o); corpo.appendChild(d);
-      var nuova = document.createElement('button'); nuova.type = 'button'; nuova.className = 'btn ghost small'; nuova.textContent = 'Ho la scatola nuova';
+      var nuova = document.createElement('button'); nuova.type = 'button'; nuova.className = 'btn ghost small'; nuova.textContent = 'Scatola'; nuova.setAttribute('aria-label', 'Scatola nuova di ' + m.nome);
       nuova.addEventListener('click', function () { apriScatola(m); });
       var cambia = document.createElement('button'); cambia.type = 'button'; cambia.className = 'btn ghost small'; cambia.textContent = 'Modifica';
       cambia.addEventListener('click', function () { apriModifica(m); });
@@ -393,13 +396,17 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
         medicine = medicine.filter(function (x) { return x !== m; }); salva();
         avviso(m.calendario ? 'Medicina tolta. Toglila anche dal calendario del telefono.' : 'Medicina tolta.', function () { medicine.push(m); salva(); });
       });
-      li.appendChild(corpo); li.appendChild(cambia); li.appendChild(nuova);
+      // I tasti stanno in una griglia da due colonne, sotto le scritte.
+      var azioni = document.createElement('div'); azioni.className = 'azioni';
+      azioni.appendChild(cambia); azioni.appendChild(nuova);
       if (m.orari.length) {
-        var c = document.createElement('button'); c.type = 'button'; c.className = 'btn ghost small'; c.textContent = 'Metti nel calendario';
+        var c = document.createElement('button'); c.type = 'button'; c.className = 'btn ghost small'; c.textContent = 'Calendario';
+        c.setAttribute('aria-label', 'Metti nel calendario ' + m.nome);
         c.addEventListener('click', function () { scaricaCalendario(m); });
-        li.appendChild(c);
+        azioni.appendChild(c);
       }
-      li.appendChild(t); ul.appendChild(li);
+      azioni.appendChild(t);
+      li.appendChild(corpo); li.appendChild(azioni); ul.appendChild(li);
     });
     $('medicine-vuota').hidden = medicine.length > 0;
     $('riepiloghi-vuoto').hidden = medicine.length > 0;
@@ -414,7 +421,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     $('scorte-avviso').hidden = !poche.length;
     $('scorte-testo').textContent = poche.map(function (m) {
       return m.nome + ': ' + durata(m).toLowerCase() + (m.richiesta ? ', ricetta già richiesta' : '') + '.';
-    }).join(' ') + ' ' + (daChiedere.length ? CONSIGLIO : 'Quando compri le scatole, premi «Ho la scatola nuova».');
+    }).join(' ') + ' ' + (daChiedere.length ? CONSIGLIO : 'Quando compri le scatole, in «Le mie medicine» premi «Scatola».');
     $('scorte-ricetta').hidden = !daChiedere.length; $('scorte-segna').hidden = !daChiedere.length;
     $('riass-medicine').textContent = !medicine.length ? 'Non hai ancora segnato nessuna medicina.'
       : (medicine.length === 1 ? '1 medicina' : medicine.length + ' medicine') + (poche.length === 0 ? ': le scorte bastano.'
@@ -444,7 +451,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     avviso('Cambia quello che serve, poi premi Salva.');
   }
 
-  // «Ho la scatola nuova»: chiedo quante ce ne sono in una scatola (la prima volta) e quante scatole sono arrivate,
+  // «Scatola nuova»: chiedo quante ce ne sono in una scatola (la prima volta) e quante scatole sono arrivate,
   // poi le aggiungo a quelle che restano. Il riquadro sta fuori dall'elenco, così il ridisegno ogni mezzo minuto non lo tocca.
   var inScatola = null;
   function apriScatola(m) {
@@ -511,7 +518,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
   function disegnaRicetta() {
     var ul = $('ricetta-lista'); ul.textContent = '';
     medicine.forEach(function (m) {
-      var n = scatole[m.id] || 0, li = document.createElement('li'); li.className = 'item';
+      var n = scatole[m.id] || 0, li = document.createElement('li'); li.className = 'item riga';
       var corpo = document.createElement('div'); corpo.className = 'body';
       var nome = document.createElement('div'); nome.className = 'name'; nome.textContent = m.nome;
       var quanto = document.createElement('div'); quanto.textContent = n === 0 ? 'Nessuna scatola' : n === 1 ? '1 scatola' : n + ' scatole';
