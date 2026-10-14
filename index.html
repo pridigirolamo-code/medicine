@@ -131,10 +131,6 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
       <div class="ico c-pills"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="13" width="30" height="14" rx="7" transform="rotate(-45 20 20)"/><path d="M15 15l10 10"/></svg></div>
       <div class="txt"><strong>Le mie medicine</strong><span id="riass-medicine"></span></div>
     </button>
-    <button class="row" type="button" data-go="aggiungi">
-      <div class="ico c-ok"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="20" cy="20" r="15"/><path d="M20 13v14M13 20h14"/></svg></div>
-      <div class="txt"><strong>Aggiungi una medicina</strong><span>Nome, quantità e orari.</span></div>
-    </button>
     <button class="row" type="button" data-go="riepiloghi">
       <div class="ico c-blue"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="5" width="24" height="30" rx="3"/><path d="M14 14h12M14 20h12M14 26h8"/></svg></div>
       <div class="txt"><strong>Riepiloghi</strong><span>Le scorte e la ricetta per il dottore.</span></div>
@@ -145,7 +141,7 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     </button>
   </div>
 
-  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Metti nel calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 14</p>
+  <p class="foot">Gli avvisi arrivano quando questa app è aperta sul telefono. Per riceverli anche con l'app chiusa, in «Le mie medicine» premi «Metti nel calendario». Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 15</p>
 </section>
 
 <!-- ELENCO -->
@@ -167,9 +163,9 @@ input[type=text], input[type=tel], input[type=email], input[type=number], input[
     <button class="btn ghost" type="button" id="scatola-annulla">Annulla</button>
   </div>
 
+  <button class="btn ok" type="button" data-go="aggiungi">Aggiungi una medicina</button>
   <ul class="list" id="medicine-lista"></ul>
-  <p class="muted" id="medicine-vuota" hidden>Non hai ancora segnato nessuna medicina.</p>
-  <button class="btn" type="button" data-go="aggiungi">Aggiungi una medicina</button>
+  <p class="muted" id="medicine-vuota" hidden>Non hai ancora segnato nessuna medicina: premi «Aggiungi una medicina» qui sopra.</p>
 </section>
 
 <!-- RIEPILOGHI -->
