@@ -221,7 +221,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 33</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 34</p>
 </section>
 
 <!-- ELENCO -->
@@ -366,9 +366,10 @@ textarea { resize: vertical }
       <button class="btn" type="submit">Salva</button>
       <button class="btn ghost" type="button" id="misura-annulla">Annulla</button>
     </div>
-    <button class="link-piccolo" type="button" id="misura-togli" hidden style="align-self: center">Togli questa misura</button>
+    <button class="btn ghost" type="button" id="misura-togli" hidden>Togli questa misura</button>
   </form>
 
+  <p class="muted" id="misure-suggerimento" hidden style="font-size: 0.85rem">Tocca una misura per modificarla o toglierla.</p>
   <div id="misure"></div>
   <p class="muted" id="misure-vuote">Nessuna misura per ora.</p>
   <div class="panel" id="misure-manda" hidden>
@@ -1168,7 +1169,7 @@ textarea { resize: vertical }
   // --- salute: pressione, saturazione, glicemia ---
   // Ogni misura: { id, tipo, giorno: 'YYYY-MM-DD', ora: 'HH:MM', e i valori del suo tipo }.
   // I limiti sono quelli generali: servono solo a far notare un valore insolito, non a giudicarlo.
-  var misure = leggi('misure', []), misuraAperta = null, tipoAperto = '';
+  var misure = leggi('misure', []), misuraAperta = null, tipoAperto = '', tipoEspanso = '';
   var NOMI_MISURA = { pressione: 'Pressione', saturazione: 'Saturazione', glicemia: 'Glicemia' };
   function salvaMisure() { scrivi('misure', misure); disegnaMisure(); }
   function valoreMisura(m) {
@@ -1190,15 +1191,22 @@ textarea { resize: vertical }
   function disegnaMisure() {
     var box = $('misure'); box.textContent = '';
     var tutte = ordinate();
+    // Di ogni tipo si vede solo l'ultima misura, così la pagina resta corta; «Vedi tutte» apre le altre.
     ['pressione', 'saturazione', 'glicemia'].forEach(function (tipo) {
-      var queste = tutte.filter(function (m) { return m.tipo === tipo; }).slice(0, 10);
-      if (!queste.length) return;
+      var tipoTutte = tutte.filter(function (m) { return m.tipo === tipo; });
+      if (!tipoTutte.length) return;
+      var aperto = tipoEspanso === tipo, queste = aperto ? tipoTutte : tipoTutte.slice(0, 1);
       var grp = document.createElement('div'); grp.className = 'misure-tipo';
-      var t = document.createElement('span'); t.className = 'tag'; t.textContent = NOMI_MISURA[tipo]; grp.appendChild(t);
+      var t = document.createElement('span'); t.className = 'tag'; t.textContent = NOMI_MISURA[tipo] + (aperto ? '' : ' · l\'ultima'); grp.appendChild(t);
       var ul = document.createElement('ul'); ul.className = 'list';
+      if (tipoTutte.length > 1) {
+        var altre = document.createElement('button'); altre.type = 'button'; altre.className = 'link-piccolo'; altre.style.alignSelf = 'flex-start';
+        altre.textContent = aperto ? 'Mostra solo l\'ultima' : 'Vedi tutte (' + tipoTutte.length + ')';
+        altre.addEventListener('click', function () { tipoEspanso = aperto ? '' : tipo; disegnaMisure(); });
+      }
       queste.forEach(function (m) {
         var f = fuoriNorma(m), li = document.createElement('li'); li.className = 'item misura' + (f ? ' warn' : '');
-        li.setAttribute('role', 'button'); li.tabIndex = 0; li.setAttribute('aria-label', 'Correggi: ' + NOMI_MISURA[tipo] + ' ' + valoreMisura(m));
+        li.setAttribute('role', 'button'); li.tabIndex = 0; li.setAttribute('aria-label', 'Modifica o togli: ' + NOMI_MISURA[tipo] + ' ' + valoreMisura(m));
         var corpo = document.createElement('div'); corpo.className = 'body';
         var v = document.createElement('div'); v.className = 'valore'; v.textContent = valoreMisura(m);
         var q = document.createElement('div'); q.className = 'muted'; q.textContent = quandoMisura(m);
@@ -1207,10 +1215,10 @@ textarea { resize: vertical }
         li.addEventListener('click', function () { apriMisura(m.tipo, m); });
         ul.appendChild(li);
       });
-      grp.appendChild(ul); box.appendChild(grp);
+      grp.appendChild(ul); if (altre) grp.appendChild(altre); box.appendChild(grp);
     });
     var c = !misure.length;
-    $('misure-vuote').hidden = !c; $('misure-manda').hidden = c; $('misure-nota').hidden = c;
+    $('misure-vuote').hidden = !c; $('misure-manda').hidden = c; $('misure-nota').hidden = c; $('misure-suggerimento').hidden = c;
     var d = dottore(), testo = testoMisure();
     $('misure-whatsapp').hidden = !d.whatsapp; $('misure-email').hidden = !d.email;
     $('misure-whatsapp').href = 'https://wa.me/' + d.whatsapp + '?text=' + encodeURIComponent(testo);
@@ -1234,7 +1242,7 @@ textarea { resize: vertical }
   function apriMisura(tipo, m) {
     misuraAperta = m || null; tipoAperto = tipo;
     var f = $('misura-form'); f.reset();
-    $('misura-titolo').textContent = (m ? 'Correggi: ' : '') + NOMI_MISURA[tipo];
+    $('misura-titolo').textContent = (m ? 'Modifica: ' : '') + NOMI_MISURA[tipo];
     f.querySelectorAll('[data-campi]').forEach(function (el) { el.hidden = el.dataset.campi.split(' ').indexOf(tipo) < 0; });
     $('mis-giorno').value = m ? m.giorno : iso(new Date()); $('mis-giorno').max = iso(new Date());
     $('mis-ora').value = m ? m.ora : oraAdesso();
