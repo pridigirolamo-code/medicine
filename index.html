@@ -103,8 +103,7 @@ textarea { resize: vertical }
 .tasti-dose { display: flex; flex-direction: column; gap: 4px; flex: none }
 .diario-giorno { font-weight: 700; font-size: 0.95rem; margin-top: 4px }
 .diario-riga { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.95rem; padding: 2px 0; border-bottom: 1px solid var(--line) }
-.diario-dx { display: flex; align-items: center; gap: 6px }
-.togli-riga { background: none; border: 1.5px solid var(--line); border-radius: 999px; width: 30px; height: 30px; font-size: 1.1rem; line-height: 1; color: var(--muted); flex: none }
+.diario-riassunto { font-size: 0.95rem; padding: 0 0 6px; border-bottom: 1px solid var(--line) }
 .esito-presa { color: var(--ok); font-weight: 700 } .esito-saltata { color: var(--muted); font-weight: 700 } .esito-dimenticata { color: var(--warn); font-weight: 700 }
 /* Tasti di ogni medicina: una riga sola sotto le scritte */
 .azioni { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; width: 100% }
@@ -203,7 +202,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 28</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 29</p>
 </section>
 
 <!-- ELENCO -->
@@ -957,40 +956,52 @@ textarea { resize: vertical }
     });
     if (aggiunte) scrivi('diario', diario);
   }
+  // Oggi: l'elenco di ogni dose. Giorni passati: una riga sola, «Tutte prese» oppure solo quelle saltate o dimenticate.
+  function giorniDiario() {
+    var giorni = [], perGiorno = {};
+    vociDiario().forEach(function (e) {
+      if (!perGiorno[e.g]) { perGiorno[e.g] = []; giorni.push(e.g); }
+      perGiorno[e.g].push(e);
+    });
+    return giorni.map(function (g) { return { g: g, voci: perGiorno[g] }; });
+  }
+  function riassunto(voci) {
+    var mancate = voci.filter(function (e) { return e.esito !== 'presa'; });
+    var elenco = mancate.map(function (e) { return e.nome + ' delle ' + e.ora + ' (' + e.esito + ')'; }).join(', ');
+    if (!mancate.length) return 'Tutte prese';
+    return mancate.length === voci.length ? 'Nessuna presa: ' + elenco : 'Tutte prese tranne: ' + elenco;
+  }
+  function nomeGiorno(g) { var t = etichettaGiorno(g); return (g === iso(new Date()) ? 'Oggi, ' : '') + t.charAt(0).toUpperCase() + t.slice(1); }
   function disegnaDiario() {
     completaOggi();
-    var ul = $('diario-lista'), voci = vociDiario(), giorno = ''; ul.textContent = '';
-    voci.forEach(function (e) {
-      if (e.g !== giorno) {
-        giorno = e.g;
-        var t = document.createElement('li'); t.className = 'diario-giorno';
-        t.textContent = etichettaGiorno(e.g).charAt(0).toUpperCase() + etichettaGiorno(e.g).slice(1);
-        ul.appendChild(t);
+    var ul = $('diario-lista'), giorni = giorniDiario(), oggi = iso(new Date()); ul.textContent = '';
+    giorni.forEach(function (d) {
+      var t = document.createElement('li'); t.className = 'diario-giorno'; t.textContent = nomeGiorno(d.g);
+      ul.appendChild(t);
+      if (d.g !== oggi) {
+        var r = document.createElement('li'), testo = riassunto(d.voci);
+        r.className = 'diario-riassunto ' + (testo === 'Tutte prese' ? 'esito-presa' : 'esito-dimenticata'); r.textContent = testo;
+        ul.appendChild(r); return;
       }
-      var li = document.createElement('li'); li.className = 'diario-riga';
-      var sx = document.createElement('span'); sx.textContent = e.ora + ' ' + e.nome;
-      var dx = document.createElement('span'); dx.className = 'esito-' + e.esito; dx.textContent = esitoTesto(e);
-      // × per togliere una riga (per esempio le prove), con Annulla.
-      var x = document.createElement('button'); x.type = 'button'; x.className = 'togli-riga'; x.textContent = '×';
-      x.setAttribute('aria-label', 'Togli dal diario: ' + e.nome + ' delle ' + e.ora);
-      x.addEventListener('click', function () {
-        diario = diario.filter(function (y) { return y !== e; }); scrivi('diario', diario); disegnaDiario();
-        avviso('Riga tolta dal diario.', function () { diario.push(e); scrivi('diario', diario); disegnaDiario(); });
+      d.voci.forEach(function (e) {
+        var li = document.createElement('li'); li.className = 'diario-riga';
+        var sx = document.createElement('span'); sx.textContent = e.ora + ' ' + e.nome;
+        var dx = document.createElement('span'); dx.className = 'esito-' + e.esito; dx.textContent = esitoTesto(e);
+        li.appendChild(sx); li.appendChild(dx); ul.appendChild(li);
       });
-      var dxBox = document.createElement('span'); dxBox.className = 'diario-dx'; dxBox.appendChild(dx); dxBox.appendChild(x);
-      li.appendChild(sx); li.appendChild(dxBox); ul.appendChild(li);
     });
-    $('diario-vuoto').hidden = voci.length > 0; $('diario-condividi').hidden = !voci.length;
+    $('diario-vuoto').hidden = giorni.length > 0; $('diario-condividi').hidden = !giorni.length;
   }
   $('diario-apri').addEventListener('click', function () {
     chiudiGiornata(); $('diario').hidden = false; $('diario-apri').hidden = true; disegnaDiario(); $('diario').scrollIntoView({ block: 'nearest' });
   });
   $('diario-chiudi').addEventListener('click', function () { $('diario').hidden = true; $('diario-apri').hidden = false; });
   $('diario-condividi').addEventListener('click', function () {
-    var giorno = '', righe = ['Diario delle dosi' + (nomePersona() ? ' di ' + nomePersona() : '') + ' (ultimi 14 giorni):'];
-    vociDiario().forEach(function (e) {
-      if (e.g !== giorno) { giorno = e.g; righe.push('', etichettaGiorno(e.g)); }
-      righe.push('• ' + e.ora + ' ' + e.nome + ': ' + esitoTesto(e));
+    // Per il dottore basta il riassunto di ogni giorno.
+    var righe = ['Diario delle dosi' + (nomePersona() ? ' di ' + nomePersona() : '') + ' (ultimi 14 giorni):'];
+    giorniDiario().forEach(function (d) {
+      var r = riassunto(d.voci);
+      righe.push('• ' + etichettaGiorno(d.g) + (d.g === iso(new Date()) ? ' (finora)' : '') + ': ' + r.charAt(0).toLowerCase() + r.slice(1));
     });
     condividi('Diario delle dosi', righe.join('\n'));
   });
