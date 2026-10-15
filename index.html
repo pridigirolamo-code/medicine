@@ -12,22 +12,22 @@
 <title>Le mie medicine</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Lexend:wght@500;700&display=swap">
 <style>
-/* Layout: una prima pagina con l'essenziale di oggi e quattro riquadri; ogni riquadro apre la sua schermata.
+/* Layout: una prima pagina con l'essenziale di oggi e cinque riquadri; ogni riquadro apre la sua schermata.
    Una colonna larga come un telefono, tasti grandi. */
 :root {
   --bg: #EDF1F5; --surface: #FFFFFF; --ink: #10213A; --muted: #45546B; --line: #C5CFDB;
-  --pills: #0B6470; --ok: #14663A; --blue: #1B4F9C; --purple: #6A3C96; --warn: #8A5200; --warn-soft: #FFF0CC; --on-color: #FFFFFF;
+  --pills: #0B6470; --ok: #14663A; --blue: #1B4F9C; --purple: #6A3C96; --rose: #A8334F; --warn: #8A5200; --warn-soft: #FFF0CC; --on-color: #FFFFFF;
   --display: "Lexend", "Trebuchet MS", Verdana, sans-serif;
   --body: "Atkinson Hyperlegible", Verdana, "Segoe UI", sans-serif;
   --radius: 12px;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #0E1622; --surface: #18222F; --ink: #F1F5FA; --muted: #B3C0D0; --line: #34445A;
-  --pills: #0F7A88; --ok: #1E7F4A; --blue: #2A66C2; --purple: #7E4DB0; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
+  --pills: #0F7A88; --ok: #1E7F4A; --blue: #2A66C2; --purple: #7E4DB0; --rose: #B8445F; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
   color-scheme: dark } }
 :root[data-theme="dark"] {
   --bg: #0E1622; --surface: #18222F; --ink: #F1F5FA; --muted: #B3C0D0; --line: #34445A;
-  --pills: #0F7A88; --ok: #1E7F4A; --blue: #2A66C2; --purple: #7E4DB0; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
+  --pills: #0F7A88; --ok: #1E7F4A; --blue: #2A66C2; --purple: #7E4DB0; --rose: #B8445F; --warn: #9A6205; --warn-soft: #3D3210; --on-color: #FFFFFF;
   color-scheme: dark }
 
 * { box-sizing: border-box }
@@ -66,6 +66,7 @@ a.btn { display: grid; place-items: center; text-decoration: none }
 .row strong { font-family: var(--display); font-size: 1.1rem; display: block; line-height: 1.2 }
 .row span { color: var(--muted); font-size: 0.9rem }
 .c-pills { background: var(--pills) } .c-ok { background: var(--ok) } .c-blue { background: var(--blue) } .c-purple { background: var(--purple) }
+.c-rose { background: var(--rose) }
 .back { background: var(--surface); border: 1.5px solid var(--ink); border-radius: 999px; padding: 4px 14px 4px 8px;
   font-weight: 700; font-size: 0.95rem; align-self: flex-start; min-height: 36px; display: flex; align-items: center; gap: 4px }
 .back svg { width: 20px; height: 20px }
@@ -83,7 +84,8 @@ input[type=time] { -webkit-appearance: none; appearance: none; min-width: 0; dis
 input { min-width: 0 }
 
 label { font-weight: 700; display: block; margin-bottom: 4px; font-size: 0.95rem }
-input[type=text], input[type=tel], input[type=email], input[type=number], input[type=time], select, textarea { width: 100%; background: var(--surface);
+input[type=date] { -webkit-appearance: none; appearance: none; min-width: 0; display: block; text-align: left }
+input[type=text], input[type=tel], input[type=email], input[type=number], input[type=time], input[type=date], select, textarea { width: 100%; background: var(--surface);
   border: 1.5px solid var(--muted); border-radius: 10px; padding: 8px 10px; min-height: 44px; font-size: 1.05rem; font-family: inherit; color: inherit }
 textarea { resize: vertical }
 /* Annotazioni per il dottore: casella per spuntare a sinistra, testo al centro, cestino a destra */
@@ -107,6 +109,16 @@ textarea { resize: vertical }
 .diario-riga.tocca { cursor: pointer }
 .correzione { gap: 8px }
 .correzione .link-piccolo { align-self: center }
+/* Salute: tre tasti dei tipi di misura, giorno e ora affiancati, scelta digiuno / dopo il pasto */
+.tipi-misura { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px }
+.tipi-misura .btn { padding: 10px 4px; font-size: 0.98rem }
+.quando { display: grid; grid-template-columns: 1fr 112px; gap: 8px }
+.momenti { display: grid; grid-template-columns: 1fr 1fr; gap: 6px }
+.misure-tipo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px }
+.misura { cursor: pointer; flex-wrap: nowrap }
+.consigli { gap: 6px; font-size: 0.95rem }
+.misura .valore { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums }
+.misura .fuori { font-weight: 700; color: var(--warn); font-size: 0.85rem; flex: none }
 .esito-presa { color: var(--ok); font-weight: 700 } .esito-saltata { color: var(--muted); font-weight: 700 } .esito-dimenticata { color: var(--warn); font-weight: 700 }
 /* Tasti di ogni medicina: una riga sola sotto le scritte */
 .azioni { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; width: 100% }
@@ -199,13 +211,17 @@ textarea { resize: vertical }
       <div class="ico c-ok"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h28v18H19l-8 6v-6H6z"/><path d="M17 14a3 3 0 1 1 4 2.8c-.8.4-1 1-1 2"/><path d="M20 22.5v.5"/></svg></div>
       <div class="txt"><strong>Per il dottore</strong><span id="riass-dottore"></span></div>
     </button>
+    <button class="row" type="button" data-go="salute">
+      <div class="ico c-rose"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 34S5 25 5 14.5A7.5 7.5 0 0 1 20 11a7.5 7.5 0 0 1 15 3.5C35 25 20 34 20 34z"/><path d="M9 20h7l2-4 3 8 2-4h8"/></svg></div>
+      <div class="txt"><strong>Salute</strong><span id="riass-salute"></span></div>
+    </button>
     <button class="row" type="button" data-go="famiglia">
       <div class="ico c-purple"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="14" cy="13" r="5"/><circle cx="28" cy="15" r="4"/><path d="M5 34c0-6 4-10 9-10s9 4 9 10M24 34c0-5 2-8 5-8s6 3 6 8"/></svg></div>
       <div class="txt"><strong>Avvisi alla famiglia</strong><span id="riass-famiglia"></span></div>
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 31</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 33</p>
 </section>
 
 <!-- ELENCO -->
@@ -312,6 +328,63 @@ textarea { resize: vertical }
   <div class="pair" id="note-tasti">
     <button class="btn" type="button" id="note-condividi">Condividi l'elenco</button>
     <button class="btn ghost" type="button" id="note-pulisci">Togli quelle già chieste</button>
+  </div>
+</section>
+
+<!-- SALUTE: pressione, saturazione e glicemia annotate quando si misurano -->
+<section id="salute" class="compatta" hidden>
+  <button class="back" type="button" data-go="casa"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Torna all'inizio</button>
+  <h2>Salute</h2>
+  <p class="muted">Quando misuri pressione, saturazione o glicemia, tocca il tasto e scrivi i valori.</p>
+  <div class="tipi-misura">
+    <button class="btn" type="button" data-misura="pressione">Pressione</button>
+    <button class="btn" type="button" data-misura="saturazione">Saturazione</button>
+    <button class="btn" type="button" data-misura="glicemia">Glicemia</button>
+  </div>
+
+  <form class="panel warn" id="misura-form" hidden>
+    <h2 id="misura-titolo">Pressione</h2>
+    <div class="pair" data-campi="pressione">
+      <div><label for="mis-max">Massima</label><input type="number" id="mis-max" inputmode="numeric" min="40" max="300" step="1" placeholder="Per esempio: 130"></div>
+      <div><label for="mis-min">Minima</label><input type="number" id="mis-min" inputmode="numeric" min="20" max="200" step="1" placeholder="Per esempio: 80"></div>
+    </div>
+    <div data-campi="saturazione"><label for="mis-spo2">Saturazione (%)</label><input type="number" id="mis-spo2" inputmode="numeric" min="50" max="100" step="1" placeholder="Per esempio: 97"></div>
+    <div data-campi="pressione saturazione"><label for="mis-battiti">Battiti al minuto <span class="muted">(facoltativo)</span></label><input type="number" id="mis-battiti" inputmode="numeric" min="20" max="250" step="1" placeholder="Per esempio: 70"></div>
+    <div data-campi="glicemia"><label for="mis-glicemia">Glicemia (mg/dL)</label><input type="number" id="mis-glicemia" inputmode="numeric" min="10" max="700" step="1" placeholder="Per esempio: 110"></div>
+    <fieldset class="giorni-campo" data-campi="glicemia">
+      <legend>Quando l'hai misurata?</legend>
+      <div class="momenti">
+        <label class="giorno"><input type="radio" name="mis-momento" value="digiuno" checked><span>A digiuno</span></label>
+        <label class="giorno"><input type="radio" name="mis-momento" value="dopo"><span>Dopo il pasto</span></label>
+      </div>
+    </fieldset>
+    <div class="quando">
+      <div><label for="mis-giorno">Giorno</label><input type="date" id="mis-giorno"></div>
+      <div><label for="mis-ora">Ora</label><input type="time" id="mis-ora"></div>
+    </div>
+    <div class="pair">
+      <button class="btn" type="submit">Salva</button>
+      <button class="btn ghost" type="button" id="misura-annulla">Annulla</button>
+    </div>
+    <button class="link-piccolo" type="button" id="misura-togli" hidden style="align-self: center">Togli questa misura</button>
+  </form>
+
+  <div id="misure"></div>
+  <p class="muted" id="misure-vuote">Nessuna misura per ora.</p>
+  <div class="panel" id="misure-manda" hidden>
+    <h2>Per il dottore</h2>
+    <p class="muted">Le misure degli ultimi 30 giorni, pronte da mandare.</p>
+    <a class="btn ok" id="misure-whatsapp" target="_blank" rel="noopener" hidden>Manda al dottore su WhatsApp</a>
+    <a class="btn" id="misure-email" hidden>Manda al dottore per email</a>
+    <button class="btn ghost" type="button" id="misure-condividi">Condividi</button>
+  </div>
+  <p class="muted" id="misure-nota" hidden style="font-size: 0.85rem">In giallo i valori fuori dai limiti generali. Chiedi al dottore quali valori valgono per te.</p>
+  <div class="panel consigli">
+    <h2>Quando misurare</h2>
+    <p><b>Pressione:</b> al mattino, prima di colazione e delle medicine, e la sera prima di cena. Seduto, a riposo da 5 minuti, con il braccio appoggiato all'altezza del cuore.</p>
+    <p><b>Saturazione:</b> a riposo e seduto, con la mano ferma e calda e senza smalto sull'unghia. Misurala anche quando ti senti affannato.</p>
+    <p><b>Glicemia:</b> a digiuno al mattino, appena alzato. Dopo il pasto, 2 ore dopo l'inizio del pranzo o della cena.</p>
+    <p class="muted" style="font-size: 0.85rem">Sono indicazioni generali: quante volte misurare lo decide il dottore.</p>
   </div>
 </section>
 
@@ -425,7 +498,7 @@ textarea { resize: vertical }
   // La prima pagina e quattro schermate. Ogni schermata aperta entra nella cronologia,
   // così anche il tasto «indietro» del telefono riporta alla schermata di prima.
   // pila: le schermate aperte dopo la prima pagina, nell'ordine.
-  var SCHERMATE = ['casa', 'elenco', 'aggiungi', 'riepiloghi', 'dottore', 'famiglia'], pila = [];
+  var SCHERMATE = ['casa', 'elenco', 'aggiungi', 'riepiloghi', 'dottore', 'salute', 'famiglia'], pila = [];
   function mostra(nome) {
     if (SCHERMATE.indexOf(nome) < 0) nome = 'casa';
     SCHERMATE.forEach(function (s) { $(s).hidden = s !== nome; });
@@ -764,7 +837,7 @@ textarea { resize: vertical }
     if (scritto && !numero) { avviso('Il numero del dottore non sembra giusto. Controllalo.'); return; }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { avviso('L\'email del dottore non sembra giusta. Controllala.'); return; }
     scrivi('dottore', { whatsapp: numero, email: email });
-    this.hidden = true; disegnaDottore();
+    this.hidden = true; disegnaDottore(); disegnaMisure();
     avviso(numero || email ? 'Contatto del dottore salvato.' : 'Contatto del dottore tolto.');
   });
 
@@ -1092,17 +1165,136 @@ textarea { resize: vertical }
   });
   disegnaNote();
 
+  // --- salute: pressione, saturazione, glicemia ---
+  // Ogni misura: { id, tipo, giorno: 'YYYY-MM-DD', ora: 'HH:MM', e i valori del suo tipo }.
+  // I limiti sono quelli generali: servono solo a far notare un valore insolito, non a giudicarlo.
+  var misure = leggi('misure', []), misuraAperta = null, tipoAperto = '';
+  var NOMI_MISURA = { pressione: 'Pressione', saturazione: 'Saturazione', glicemia: 'Glicemia' };
+  function salvaMisure() { scrivi('misure', misure); disegnaMisure(); }
+  function valoreMisura(m) {
+    if (m.tipo === 'pressione') return m.max + '/' + m.min + (m.battiti ? ', battiti ' + m.battiti : '');
+    if (m.tipo === 'saturazione') return m.spo2 + '%' + (m.battiti ? ', battiti ' + m.battiti : '');
+    return m.valore + ' mg/dL ' + (m.momento === 'dopo' ? 'dopo il pasto' : 'a digiuno');
+  }
+  function fuoriNorma(m) {
+    var b = m.battiti && (m.battiti < 50 || m.battiti > 100) ? 'battiti ' + (m.battiti < 50 ? 'bassi' : 'alti') : '';
+    if (m.tipo === 'pressione') return m.max >= 140 || m.min >= 90 ? 'Alta' : m.max < 90 || m.min < 60 ? 'Bassa' : b ? b.charAt(0).toUpperCase() + b.slice(1) : '';
+    if (m.tipo === 'saturazione') return m.spo2 < 94 ? 'Bassa' : b ? b.charAt(0).toUpperCase() + b.slice(1) : '';
+    return m.valore < 70 ? 'Bassa' : m.valore > (m.momento === 'dopo' ? 180 : 130) ? 'Alta' : '';
+  }
+  function quandoMisura(m) {
+    var g = m.giorno === iso(new Date()) ? 'Oggi' : m.giorno === iso(new Date(Date.now() - GIORNO)) ? 'Ieri' : giornoBreve(m.giorno);
+    return g + ' alle ' + m.ora;
+  }
+  function ordinate() { return misure.slice().sort(function (a, b) { return (b.giorno + b.ora).localeCompare(a.giorno + a.ora) || b.id - a.id; }); }
+  function disegnaMisure() {
+    var box = $('misure'); box.textContent = '';
+    var tutte = ordinate();
+    ['pressione', 'saturazione', 'glicemia'].forEach(function (tipo) {
+      var queste = tutte.filter(function (m) { return m.tipo === tipo; }).slice(0, 10);
+      if (!queste.length) return;
+      var grp = document.createElement('div'); grp.className = 'misure-tipo';
+      var t = document.createElement('span'); t.className = 'tag'; t.textContent = NOMI_MISURA[tipo]; grp.appendChild(t);
+      var ul = document.createElement('ul'); ul.className = 'list';
+      queste.forEach(function (m) {
+        var f = fuoriNorma(m), li = document.createElement('li'); li.className = 'item misura' + (f ? ' warn' : '');
+        li.setAttribute('role', 'button'); li.tabIndex = 0; li.setAttribute('aria-label', 'Correggi: ' + NOMI_MISURA[tipo] + ' ' + valoreMisura(m));
+        var corpo = document.createElement('div'); corpo.className = 'body';
+        var v = document.createElement('div'); v.className = 'valore'; v.textContent = valoreMisura(m);
+        var q = document.createElement('div'); q.className = 'muted'; q.textContent = quandoMisura(m);
+        corpo.appendChild(v); corpo.appendChild(q); li.appendChild(corpo);
+        if (f) { var s = document.createElement('span'); s.className = 'fuori'; s.textContent = f; li.appendChild(s); }
+        li.addEventListener('click', function () { apriMisura(m.tipo, m); });
+        ul.appendChild(li);
+      });
+      grp.appendChild(ul); box.appendChild(grp);
+    });
+    var c = !misure.length;
+    $('misure-vuote').hidden = !c; $('misure-manda').hidden = c; $('misure-nota').hidden = c;
+    var d = dottore(), testo = testoMisure();
+    $('misure-whatsapp').hidden = !d.whatsapp; $('misure-email').hidden = !d.email;
+    $('misure-whatsapp').href = 'https://wa.me/' + d.whatsapp + '?text=' + encodeURIComponent(testo);
+    $('misure-email').href = 'mailto:' + d.email + '?subject=' + encodeURIComponent('Le mie misure') + '&body=' + encodeURIComponent(testo);
+    $('misure-condividi').textContent = d.whatsapp || d.email ? 'Condividi in un altro modo' : 'Condividi';
+    var ultima = tutte[0];
+    $('riass-salute').textContent = ultima ? 'Ultima: ' + NOMI_MISURA[ultima.tipo].toLowerCase() + ' ' + valoreMisura(ultima).split(',')[0] + ', ' + quandoMisura(ultima).charAt(0).toLowerCase() + quandoMisura(ultima).slice(1) + '.'
+      : 'Pressione, saturazione e glicemia.';
+  }
+  function testoMisure() {
+    var limite = iso(new Date(Date.now() - 29 * GIORNO)), righe = [];
+    ['pressione', 'saturazione', 'glicemia'].forEach(function (tipo) {
+      var queste = ordinate().filter(function (m) { return m.tipo === tipo && m.giorno >= limite; }).reverse();
+      if (!queste.length) return;
+      righe.push('', NOMI_MISURA[tipo] + ':');
+      queste.forEach(function (m) { righe.push('• ' + giornoBreve(m.giorno) + ' alle ' + m.ora + ': ' + valoreMisura(m)); });
+    });
+    return 'Buongiorno dottore, le mando le misure' + (nomePersona() ? ' di ' + nomePersona() : '') + ' degli ultimi 30 giorni.\n' + righe.join('\n');
+  }
+  // Apre il riquadro per una misura nuova del tipo scelto, oppure per correggere una misura già scritta.
+  function apriMisura(tipo, m) {
+    misuraAperta = m || null; tipoAperto = tipo;
+    var f = $('misura-form'); f.reset();
+    $('misura-titolo').textContent = (m ? 'Correggi: ' : '') + NOMI_MISURA[tipo];
+    f.querySelectorAll('[data-campi]').forEach(function (el) { el.hidden = el.dataset.campi.split(' ').indexOf(tipo) < 0; });
+    $('mis-giorno').value = m ? m.giorno : iso(new Date()); $('mis-giorno').max = iso(new Date());
+    $('mis-ora').value = m ? m.ora : oraAdesso();
+    if (m) {
+      $('mis-max').value = m.max || ''; $('mis-min').value = m.min || ''; $('mis-spo2').value = m.spo2 || '';
+      $('mis-battiti').value = m.battiti || ''; $('mis-glicemia').value = m.valore || '';
+      f.querySelector('[name=mis-momento][value=' + (m.momento === 'dopo' ? 'dopo' : 'digiuno') + ']').checked = true;
+    }
+    $('misura-togli').hidden = !m; f.hidden = false;
+    f.scrollIntoView({ block: 'nearest' });
+    var primo = { pressione: 'mis-max', saturazione: 'mis-spo2', glicemia: 'mis-glicemia' }[tipo];
+    if (!m) $(primo).focus();
+  }
+  function chiudiMisura() { $('misura-form').hidden = true; misuraAperta = null; }
+  document.querySelectorAll('[data-misura]').forEach(function (b) {
+    b.addEventListener('click', function () { apriMisura(b.dataset.misura); });
+  });
+  $('misura-annulla').addEventListener('click', chiudiMisura);
+  $('misura-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var n = function (id) { var v = Math.round(+$(id).value); return $(id).value.trim() && v > 0 ? v : 0; };
+    var m = { id: misuraAperta ? misuraAperta.id : Date.now(), tipo: tipoAperto, giorno: $('mis-giorno').value || iso(new Date()), ora: $('mis-ora').value || oraAdesso() };
+    if (tipoAperto === 'pressione') {
+      m.max = n('mis-max'); m.min = n('mis-min'); if (n('mis-battiti')) m.battiti = n('mis-battiti');
+      if (!m.max || !m.min) { avviso('Scrivi la massima e la minima.'); return; }
+      if (m.min >= m.max || m.max > 300) { avviso('Controlla i numeri: la massima è il numero più alto.'); return; }
+    } else if (tipoAperto === 'saturazione') {
+      m.spo2 = n('mis-spo2'); if (n('mis-battiti')) m.battiti = n('mis-battiti');
+      if (!m.spo2 || m.spo2 > 100 || m.spo2 < 50) { avviso('Scrivi la saturazione: un numero fino a 100.'); return; }
+    } else {
+      m.valore = n('mis-glicemia'); m.momento = $('misura-form').querySelector('[name=mis-momento]:checked').value;
+      if (!m.valore || m.valore > 700) { avviso('Scrivi il valore della glicemia.'); return; }
+    }
+    if (m.giorno > iso(new Date())) { avviso('Il giorno non può essere nel futuro.'); return; }
+    var prima = misuraAperta;
+    misure = misure.filter(function (x) { return x !== prima; }); misure.push(m);
+    chiudiMisura(); salvaMisure();
+    avviso(prima ? 'Misura corretta.' : NOMI_MISURA[m.tipo] + ' salvata.', function () {
+      misure = misure.filter(function (x) { return x !== m; }); if (prima) misure.push(prima); salvaMisure();
+    });
+  });
+  $('misura-togli').addEventListener('click', function () {
+    var m = misuraAperta; if (!m) return;
+    misure = misure.filter(function (x) { return x !== m; }); chiudiMisura(); salvaMisure();
+    avviso('Misura tolta.', function () { misure.push(m); salvaMisure(); });
+  });
+  $('misure-condividi').addEventListener('click', function () { condividi('Le mie misure', testoMisure()); });
+  disegnaMisure();
+
   // --- copia di sicurezza ---
   // Un file con tutto quello che serve per rimettere l'app com'era, anche su un altro telefono.
   var daRipristinare = null;
   function aggiornaCopia() {
     var ultima = leggi('copia-data', '');
     $('copia-stato').textContent = (ultima ? 'Ultima copia salvata ' + etichettaGiorno(ultima) + '. ' : '') +
-      'Medicine e annotazioni sono salvate solo su questo telefono: tieni una copia nelle note, nella mail o su iCloud. Se cambi o perdi il telefono, la ricarichi da qui con «Ripristina».';
+      'Medicine, misure e annotazioni sono salvate solo su questo telefono: tieni una copia nelle note, nella mail o su iCloud. Se cambi o perdi il telefono, la ricarichi da qui con «Ripristina».';
   }
   $('copia-salva').addEventListener('click', function () {
     var testo = JSON.stringify({ app: 'le-mie-medicine', versione: 1, salvata: iso(new Date()), lista: medicine, dottore: dottore(),
-      famiglia: numeroFamiglia(), diario: diario, note: note, persona: nomePersona() }, null, 1);
+      famiglia: numeroFamiglia(), diario: diario, note: note, misure: misure, persona: nomePersona() }, null, 1);
     var chi = nomePersona().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     var nome = 'medicine-' + (chi ? chi + '-' : '') + 'copia-' + iso(new Date()) + '.json', file = null;
     try { file = new File([testo], nome, { type: 'application/json' }); } catch (e) {}
@@ -1137,6 +1329,7 @@ textarea { resize: vertical }
     if (typeof d.famiglia === 'string') scrivi('famiglia', d.famiglia);
     diario = Array.isArray(d.diario) ? d.diario : []; scrivi('diario', diario);
     if (Array.isArray(d.note)) { note = d.note; salvaNote(); }
+    if (Array.isArray(d.misure)) { misure = d.misure; salvaMisure(); }
     if (typeof d.persona === 'string') { scrivi('persona', d.persona); aggiornaNome(); }
     daRipristinare = null; $('copia-conferma').hidden = true;
     salva(); avviso('Copia ripristinata: ' + (medicine.length === 1 ? '1 medicina.' : medicine.length + ' medicine.'));

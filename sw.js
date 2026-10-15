@@ -1,6 +1,6 @@
 // Tiene una copia dell'app sul telefono, così si apre anche senza internet.
 // Cambiare VERSIONE a ogni aggiornamento dei file.
-var VERSIONE = 'medicine-31';
+var VERSIONE = 'medicine-33';
 var FILE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-180.png'];
 
 self.addEventListener('install', function (e) {
