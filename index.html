@@ -115,10 +115,16 @@ textarea { resize: vertical }
 .quando { display: grid; grid-template-columns: 1fr 112px; gap: 8px }
 .momenti { display: grid; grid-template-columns: 1fr 1fr; gap: 6px }
 .misure-tipo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px }
-.misura { cursor: pointer; flex-wrap: nowrap }
 .consigli { gap: 6px; font-size: 0.95rem }
-.misura .valore { font-family: var(--display); font-weight: 700; font-variant-numeric: tabular-nums }
-.misura .fuori { font-weight: 700; color: var(--warn); font-size: 0.85rem; flex: none }
+.misure-righe { gap: 0 }
+.misura-riga { display: grid; grid-template-columns: 82px 1fr auto; gap: 8px; align-items: center; padding: 6px 4px;
+  border-bottom: 1px solid var(--line); font-size: 0.92rem }
+.misura-riga.fuori-norma { background: var(--warn-soft) }
+.misura-riga .quando-riga { color: var(--muted); font-variant-numeric: tabular-nums }
+.misura-riga .valore { font-weight: 700; font-variant-numeric: tabular-nums }
+.misura-riga .fuori { color: var(--warn) }
+.misura-riga .btn.small { min-height: 32px; padding: 2px 10px; font-size: 0.85rem }
+.misure-righe > li:not(.misura-riga) { padding: 6px 0 }
 .esito-presa { color: var(--ok); font-weight: 700 } .esito-saltata { color: var(--muted); font-weight: 700 } .esito-dimenticata { color: var(--warn); font-weight: 700 }
 /* Tasti di ogni medicina: una riga sola sotto le scritte */
 .azioni { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; width: 100% }
@@ -221,7 +227,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 34</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 35</p>
 </section>
 
 <!-- ELENCO -->
@@ -342,7 +348,7 @@ textarea { resize: vertical }
     <button class="btn" type="button" data-misura="glicemia">Glicemia</button>
   </div>
 
-  <form class="panel warn" id="misura-form" hidden>
+  <div id="misura-casa"><form class="panel warn" id="misura-form" hidden>
     <h2 id="misura-titolo">Pressione</h2>
     <div class="pair" data-campi="pressione">
       <div><label for="mis-max">Massima</label><input type="number" id="mis-max" inputmode="numeric" min="40" max="300" step="1" placeholder="Per esempio: 130"></div>
@@ -367,19 +373,22 @@ textarea { resize: vertical }
       <button class="btn ghost" type="button" id="misura-annulla">Annulla</button>
     </div>
     <button class="btn ghost" type="button" id="misura-togli" hidden>Togli questa misura</button>
-  </form>
+  </form></div>
 
-  <p class="muted" id="misure-suggerimento" hidden style="font-size: 0.85rem">Tocca una misura per modificarla o toglierla.</p>
-  <div id="misure"></div>
   <p class="muted" id="misure-vuote">Nessuna misura per ora.</p>
-  <div class="panel" id="misure-manda" hidden>
-    <h2>Per il dottore</h2>
-    <p class="muted">Le misure degli ultimi 30 giorni, pronte da mandare.</p>
+  <button class="btn ghost" type="button" id="misure-apri" hidden>Vedi i valori misurati</button>
+  <div class="panel" id="misure-tabella" hidden>
+    <h2>Valori misurati</h2>
+    <p class="muted" style="font-size: 0.9rem">Ultimi 30 giorni. In giallo i valori fuori dai limiti generali: chiedi al dottore quali valgono per te.</p>
+    <div id="misure"></div>
+    <p class="muted" id="misure-vecchie" hidden>Nessuna misura negli ultimi 30 giorni.</p>
     <a class="btn ok" id="misure-whatsapp" target="_blank" rel="noopener" hidden>Manda al dottore su WhatsApp</a>
     <a class="btn" id="misure-email" hidden>Manda al dottore per email</a>
-    <button class="btn ghost" type="button" id="misure-condividi">Condividi</button>
+    <div class="pair">
+      <button class="btn" type="button" id="misure-condividi">Condividi</button>
+      <button class="btn ghost" type="button" id="misure-chiudi">Chiudi</button>
+    </div>
   </div>
-  <p class="muted" id="misure-nota" hidden style="font-size: 0.85rem">In giallo i valori fuori dai limiti generali. Chiedi al dottore quali valori valgono per te.</p>
   <div class="panel consigli">
     <h2>Quando misurare</h2>
     <p><b>Pressione:</b> al mattino, prima di colazione e delle medicine, e la sera prima di cena. Seduto, a riposo da 5 minuti, con il braccio appoggiato all'altezza del cuore.</p>
@@ -1169,7 +1178,7 @@ textarea { resize: vertical }
   // --- salute: pressione, saturazione, glicemia ---
   // Ogni misura: { id, tipo, giorno: 'YYYY-MM-DD', ora: 'HH:MM', e i valori del suo tipo }.
   // I limiti sono quelli generali: servono solo a far notare un valore insolito, non a giudicarlo.
-  var misure = leggi('misure', []), misuraAperta = null, tipoAperto = '', tipoEspanso = '';
+  var misure = leggi('misure', []), misuraAperta = null, tipoAperto = '';
   var NOMI_MISURA = { pressione: 'Pressione', saturazione: 'Saturazione', glicemia: 'Glicemia' };
   function salvaMisure() { scrivi('misure', misure); disegnaMisure(); }
   function valoreMisura(m) {
@@ -1188,39 +1197,38 @@ textarea { resize: vertical }
     return g + ' alle ' + m.ora;
   }
   function ordinate() { return misure.slice().sort(function (a, b) { return (b.giorno + b.ora).localeCompare(a.giorno + a.ora) || b.id - a.id; }); }
+  // La tabella dei valori: ultimi 30 giorni, divisi per tipo, i più recenti in alto. È la stessa che riceve il dottore.
+  var GIORNI_MISURE = 30;
+  function recenti() { var limite = iso(new Date(Date.now() - (GIORNI_MISURE - 1) * GIORNO)); return ordinate().filter(function (m) { return m.giorno >= limite; }); }
   function disegnaMisure() {
-    var box = $('misure'); box.textContent = '';
-    var tutte = ordinate();
-    // Di ogni tipo si vede solo l'ultima misura, così la pagina resta corta; «Vedi tutte» apre le altre.
+    var box = $('misure'), form = $('misura-form'); box.textContent = '';
+    if (!misuraAperta) $('misura-casa').appendChild(form);
+    var tutte = ordinate(), ultimi = recenti();
     ['pressione', 'saturazione', 'glicemia'].forEach(function (tipo) {
-      var tipoTutte = tutte.filter(function (m) { return m.tipo === tipo; });
-      if (!tipoTutte.length) return;
-      var aperto = tipoEspanso === tipo, queste = aperto ? tipoTutte : tipoTutte.slice(0, 1);
+      var queste = ultimi.filter(function (m) { return m.tipo === tipo; });
+      if (!queste.length) return;
       var grp = document.createElement('div'); grp.className = 'misure-tipo';
-      var t = document.createElement('span'); t.className = 'tag'; t.textContent = NOMI_MISURA[tipo] + (aperto ? '' : ' · l\'ultima'); grp.appendChild(t);
-      var ul = document.createElement('ul'); ul.className = 'list';
-      if (tipoTutte.length > 1) {
-        var altre = document.createElement('button'); altre.type = 'button'; altre.className = 'link-piccolo'; altre.style.alignSelf = 'flex-start';
-        altre.textContent = aperto ? 'Mostra solo l\'ultima' : 'Vedi tutte (' + tipoTutte.length + ')';
-        altre.addEventListener('click', function () { tipoEspanso = aperto ? '' : tipo; disegnaMisure(); });
-      }
+      var t = document.createElement('span'); t.className = 'tag'; t.textContent = NOMI_MISURA[tipo]; grp.appendChild(t);
+      var ul = document.createElement('ul'); ul.className = 'list misure-righe';
       queste.forEach(function (m) {
-        var f = fuoriNorma(m), li = document.createElement('li'); li.className = 'item misura' + (f ? ' warn' : '');
-        li.setAttribute('role', 'button'); li.tabIndex = 0; li.setAttribute('aria-label', 'Modifica o togli: ' + NOMI_MISURA[tipo] + ' ' + valoreMisura(m));
-        var corpo = document.createElement('div'); corpo.className = 'body';
-        var v = document.createElement('div'); v.className = 'valore'; v.textContent = valoreMisura(m);
-        var q = document.createElement('div'); q.className = 'muted'; q.textContent = quandoMisura(m);
-        corpo.appendChild(v); corpo.appendChild(q); li.appendChild(corpo);
-        if (f) { var s = document.createElement('span'); s.className = 'fuori'; s.textContent = f; li.appendChild(s); }
-        li.addEventListener('click', function () { apriMisura(m.tipo, m); });
-        ul.appendChild(li);
+        var f = fuoriNorma(m), li = document.createElement('li'); li.className = 'misura-riga' + (f ? ' fuori-norma' : '');
+        var q = document.createElement('span'); q.className = 'quando-riga'; q.textContent = giornoBreve(m.giorno).replace(/ (\S{3})\S*$/, ' $1') + ' ' + m.ora;
+        var v = document.createElement('span'); v.className = 'valore'; v.textContent = valoreMisura(m);
+        if (f) { var s = document.createElement('span'); s.className = 'fuori'; s.textContent = ' ' + f; v.appendChild(s); }
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ghost small'; b.textContent = 'Modifica';
+        b.setAttribute('aria-label', 'Modifica o togli: ' + NOMI_MISURA[tipo] + ' ' + valoreMisura(m) + ' del ' + giornoBreve(m.giorno));
+        b.addEventListener('click', function () { apriMisura(m.tipo, m); });
+        li.appendChild(q); li.appendChild(v); li.appendChild(b); ul.appendChild(li);
+        // Il riquadro per modificare si apre proprio sotto la riga scelta.
+        if (misuraAperta === m) { var dove = document.createElement('li'); dove.appendChild(form); ul.appendChild(dove); }
       });
-      grp.appendChild(ul); if (altre) grp.appendChild(altre); box.appendChild(grp);
+      grp.appendChild(ul); box.appendChild(grp);
     });
-    var c = !misure.length;
-    $('misure-vuote').hidden = !c; $('misure-manda').hidden = c; $('misure-nota').hidden = c; $('misure-suggerimento').hidden = c;
-    var d = dottore(), testo = testoMisure();
-    $('misure-whatsapp').hidden = !d.whatsapp; $('misure-email').hidden = !d.email;
+    $('misure-vuote').hidden = misure.length > 0; $('misure-apri').hidden = !misure.length || !$('misure-tabella').hidden;
+    if (!misure.length) $('misure-tabella').hidden = true;
+    $('misure-vecchie').hidden = ultimi.length > 0;
+    var d = dottore(), testo = testoMisure(), vuota = !ultimi.length;
+    $('misure-whatsapp').hidden = !d.whatsapp || vuota; $('misure-email').hidden = !d.email || vuota; $('misure-condividi').hidden = vuota;
     $('misure-whatsapp').href = 'https://wa.me/' + d.whatsapp + '?text=' + encodeURIComponent(testo);
     $('misure-email').href = 'mailto:' + d.email + '?subject=' + encodeURIComponent('Le mie misure') + '&body=' + encodeURIComponent(testo);
     $('misure-condividi').textContent = d.whatsapp || d.email ? 'Condividi in un altro modo' : 'Condividi';
@@ -1228,10 +1236,14 @@ textarea { resize: vertical }
     $('riass-salute').textContent = ultima ? 'Ultima: ' + NOMI_MISURA[ultima.tipo].toLowerCase() + ' ' + valoreMisura(ultima).split(',')[0] + ', ' + quandoMisura(ultima).charAt(0).toLowerCase() + quandoMisura(ultima).slice(1) + '.'
       : 'Pressione, saturazione e glicemia.';
   }
+  $('misure-apri').addEventListener('click', function () {
+    $('misure-tabella').hidden = false; disegnaMisure(); $('misure-tabella').scrollIntoView({ block: 'nearest' });
+  });
+  $('misure-chiudi').addEventListener('click', function () { chiudiMisura(); $('misure-tabella').hidden = true; disegnaMisure(); });
   function testoMisure() {
-    var limite = iso(new Date(Date.now() - 29 * GIORNO)), righe = [];
+    var righe = [];
     ['pressione', 'saturazione', 'glicemia'].forEach(function (tipo) {
-      var queste = ordinate().filter(function (m) { return m.tipo === tipo && m.giorno >= limite; }).reverse();
+      var queste = recenti().filter(function (m) { return m.tipo === tipo; });
       if (!queste.length) return;
       righe.push('', NOMI_MISURA[tipo] + ':');
       queste.forEach(function (m) { righe.push('• ' + giornoBreve(m.giorno) + ' alle ' + m.ora + ': ' + valoreMisura(m)); });
@@ -1252,11 +1264,12 @@ textarea { resize: vertical }
       f.querySelector('[name=mis-momento][value=' + (m.momento === 'dopo' ? 'dopo' : 'digiuno') + ']').checked = true;
     }
     $('misura-togli').hidden = !m; f.hidden = false;
+    if (m) disegnaMisure(); else $('misura-casa').appendChild(f);
     f.scrollIntoView({ block: 'nearest' });
     var primo = { pressione: 'mis-max', saturazione: 'mis-spo2', glicemia: 'mis-glicemia' }[tipo];
     if (!m) $(primo).focus();
   }
-  function chiudiMisura() { $('misura-form').hidden = true; misuraAperta = null; }
+  function chiudiMisura() { $('misura-form').hidden = true; misuraAperta = null; $('misura-casa').appendChild($('misura-form')); }
   document.querySelectorAll('[data-misura]').forEach(function (b) {
     b.addEventListener('click', function () { apriMisura(b.dataset.misura); });
   });
@@ -1280,7 +1293,7 @@ textarea { resize: vertical }
     var prima = misuraAperta;
     misure = misure.filter(function (x) { return x !== prima; }); misure.push(m);
     chiudiMisura(); salvaMisure();
-    avviso(prima ? 'Misura corretta.' : NOMI_MISURA[m.tipo] + ' salvata.', function () {
+    avviso((prima ? 'Misura corretta: ' : NOMI_MISURA[m.tipo] + ' salvata: ') + valoreMisura(m) + '.', function () {
       misure = misure.filter(function (x) { return x !== m; }); if (prima) misure.push(prima); salvaMisure();
     });
   });
