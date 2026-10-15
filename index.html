@@ -103,7 +103,9 @@ textarea { resize: vertical }
 .tasti-dose { display: flex; flex-direction: column; gap: 4px; flex: none }
 .diario-giorno { font-weight: 700; font-size: 0.95rem; margin-top: 4px }
 .diario-riga { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 0.95rem; padding: 2px 0; border-bottom: 1px solid var(--line) }
-.diario-riassunto { font-size: 0.95rem; padding: 0 0 6px; border-bottom: 1px solid var(--line) }
+.diario-riassunto { font-size: 0.95rem; padding: 0 0 6px; border-bottom: 1px solid var(--line); cursor: pointer }
+.diario-dx { display: flex; align-items: center; gap: 6px }
+.diario-dx .btn.small { min-height: 30px; padding: 2px 8px; font-size: 0.8rem }
 .esito-presa { color: var(--ok); font-weight: 700 } .esito-saltata { color: var(--muted); font-weight: 700 } .esito-dimenticata { color: var(--warn); font-weight: 700 }
 /* Tasti di ogni medicina: una riga sola sotto le scritte */
 .azioni { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; width: 100% }
@@ -202,7 +204,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 29</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 30</p>
 </section>
 
 <!-- ELENCO -->
@@ -972,22 +974,43 @@ textarea { resize: vertical }
     return mancate.length === voci.length ? 'Nessuna presa: ' + elenco : 'Tutte prese tranne: ' + elenco;
   }
   function nomeGiorno(g) { var t = etichettaGiorno(g); return (g === iso(new Date()) ? 'Oggi, ' : '') + t.charAt(0).toUpperCase() + t.slice(1); }
+  // Correggere una voce: «Era presa» / «Era saltata». Il conto delle pastiglie si sistema di conseguenza.
+  function correggi(e, esito) {
+    var prima = { esito: e.esito, alle: e.alle }, p = e.k.split('|'), m = medicine.filter(function (x) { return String(x.id) === p[0]; })[0];
+    var dose = m && m.orari.length ? m.alGiorno / m.orari.length : 0, cambio = (prima.esito === 'presa' ? 1 : 0) - (esito === 'presa' ? 1 : 0);
+    e.esito = esito; e.alle = esito === 'presa' ? '' : e.alle;
+    if (m && cambio) m.rimaste = Math.max(0, m.rimaste + cambio * dose);
+    scrivi('diario', diario); salva(); disegnaDiario();
+    avviso('Corretto: ' + e.nome + ' delle ' + e.ora + ' ora risulta ' + esito + '.', function () {
+      e.esito = prima.esito; e.alle = prima.alle;
+      if (m && cambio) m.rimaste = Math.max(0, m.rimaste - cambio * dose);
+      scrivi('diario', diario); salva(); disegnaDiario();
+    });
+  }
+  var giorniAperti = [];
   function disegnaDiario() {
     completaOggi();
     var ul = $('diario-lista'), giorni = giorniDiario(), oggi = iso(new Date()); ul.textContent = '';
     giorni.forEach(function (d) {
       var t = document.createElement('li'); t.className = 'diario-giorno'; t.textContent = nomeGiorno(d.g);
       ul.appendChild(t);
-      if (d.g !== oggi) {
+      // I giorni passati sono una riga sola; toccandola si apre l'elenco di quel giorno, per correggere.
+      if (d.g !== oggi && giorniAperti.indexOf(d.g) < 0) {
         var r = document.createElement('li'), testo = riassunto(d.voci);
-        r.className = 'diario-riassunto ' + (testo === 'Tutte prese' ? 'esito-presa' : 'esito-dimenticata'); r.textContent = testo;
+        r.className = 'diario-riassunto ' + (testo === 'Tutte prese' ? 'esito-presa' : 'esito-dimenticata'); r.textContent = testo + ' ›';
+        r.setAttribute('role', 'button'); r.tabIndex = 0;
+        r.addEventListener('click', function () { giorniAperti.push(d.g); disegnaDiario(); });
         ul.appendChild(r); return;
       }
       d.voci.forEach(function (e) {
         var li = document.createElement('li'); li.className = 'diario-riga';
         var sx = document.createElement('span'); sx.textContent = e.ora + ' ' + e.nome;
         var dx = document.createElement('span'); dx.className = 'esito-' + e.esito; dx.textContent = esitoTesto(e);
-        li.appendChild(sx); li.appendChild(dx); ul.appendChild(li);
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'btn ghost small';
+        b.textContent = e.esito === 'presa' ? 'Era saltata' : 'Era presa';
+        b.addEventListener('click', function () { correggi(e, e.esito === 'presa' ? 'saltata' : 'presa'); });
+        var box = document.createElement('span'); box.className = 'diario-dx'; box.appendChild(dx); box.appendChild(b);
+        li.appendChild(sx); li.appendChild(box); ul.appendChild(li);
       });
     });
     $('diario-vuoto').hidden = giorni.length > 0; $('diario-condividi').hidden = !giorni.length;
@@ -995,7 +1018,7 @@ textarea { resize: vertical }
   $('diario-apri').addEventListener('click', function () {
     chiudiGiornata(); $('diario').hidden = false; $('diario-apri').hidden = true; disegnaDiario(); $('diario').scrollIntoView({ block: 'nearest' });
   });
-  $('diario-chiudi').addEventListener('click', function () { $('diario').hidden = true; $('diario-apri').hidden = false; });
+  $('diario-chiudi').addEventListener('click', function () { $('diario').hidden = true; $('diario-apri').hidden = false; giorniAperti = []; });
   $('diario-condividi').addEventListener('click', function () {
     // Per il dottore basta il riassunto di ogni giorno.
     var righe = ['Diario delle dosi' + (nomePersona() ? ' di ' + nomePersona() : '') + ' (ultimi 14 giorni):'];
