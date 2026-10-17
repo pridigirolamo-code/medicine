@@ -227,7 +227,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 35</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 36</p>
 </section>
 
 <!-- ELENCO -->
@@ -619,6 +619,10 @@ textarea { resize: vertical }
       var d = document.createElement('div');
       d.textContent = (r === 1 ? 'Resta ' : 'Restano ') + quante(m, r) + ' · ' + durata(m).toLowerCase() + (m.richiesta ? ' · ricetta richiesta il ' + giornoBreve(m.richiesta) : '');
       corpo.appendChild(n); corpo.appendChild(o); corpo.appendChild(d);
+      // Quante ce ne sono in una scatola: si vede subito se il numero salvato è giusto.
+      var sc = document.createElement('div'); sc.className = 'muted';
+      sc.textContent = m.scatola ? 'Scatola da ' + quante(m, m.scatola) : 'Scatola: numero non indicato (tocca Modifica)';
+      corpo.appendChild(sc);
       if (m.note) { var nota = document.createElement('div'); nota.className = 'muted'; nota.textContent = m.note; corpo.appendChild(nota); }
       var nuova = document.createElement('button'); nuova.type = 'button'; nuova.className = 'btn ghost small'; nuova.textContent = 'Scatola'; nuova.setAttribute('aria-label', 'Scatola nuova di ' + m.nome);
       nuova.addEventListener('click', function () { apriScatola(m); });
