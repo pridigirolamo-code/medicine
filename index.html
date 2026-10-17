@@ -227,7 +227,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 36</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 37</p>
 </section>
 
 <!-- ELENCO -->
@@ -1022,8 +1022,18 @@ textarea { resize: vertical }
       .filter(function (n, i, tutti) { return tutti.indexOf(n) === i; }).join(', ') + '.';
     avviso(testo); notifica(testo);
     try { if (navigator.vibrate) navigator.vibrate([300, 150, 300]); } catch (e) {}
-    try { var u = new SpeechSynthesisUtterance(testo); u.lang = 'it-IT'; u.rate = 0.9; speechSynthesis.speak(u); } catch (e) {}
+    parla(testo);
   }
+  // Voce: iPhone e Chrome fanno parlare la pagina solo dopo che è stata toccata almeno una volta.
+  // Al primo tocco dico una frase vuota, così la voce è «sbloccata» e all'ora della medicina parla davvero.
+  function parla(testo) {
+    try { var u = new SpeechSynthesisUtterance(testo); u.lang = 'it-IT'; u.rate = 0.9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
+  }
+  function sbloccaVoce() {
+    try { var u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {}
+    ['pointerdown', 'touchend', 'keydown'].forEach(function (t) { document.removeEventListener(t, sbloccaVoce, true); });
+  }
+  ['pointerdown', 'touchend', 'keydown'].forEach(function (t) { document.addEventListener(t, sbloccaVoce, true); });
   // --- diario: schermata ---
   function etichettaGiorno(isoData) {
     var p = isoData.split('-');
