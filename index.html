@@ -227,7 +227,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 37</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 38</p>
 </section>
 
 <!-- ELENCO -->
@@ -316,6 +316,12 @@ textarea { resize: vertical }
         <button class="btn ghost" type="button" id="copia-annulla">Annulla</button>
       </div>
     </div>
+  </div>
+
+  <div class="panel" id="voce">
+    <h2>Voce con Comandi (iPhone)</h2>
+    <p class="muted">Per far dire al telefono ad alta voce, ogni minuto, le medicine da prendere, finché non premi «L'ho presa» o «Saltata». Questo indirizzo va incollato nel comando di Comandi.</p>
+    <button class="btn" type="button" id="voce-copia">Copia l'indirizzo per Comandi</button>
   </div>
 </section>
 
@@ -1478,8 +1484,15 @@ textarea { resize: vertical }
         });
         applicate = applicate.slice(-100); scrivi('applicate', applicate);
         salva();
-      }).catch(function () { if (senzaServizio) $('telegram').hidden = true; });
+      }).catch(function () { if (senzaServizio) { $('telegram').hidden = true; $('voce').hidden = true; } });
   }
+  // L'indirizzo personale che Comandi chiede ogni minuto: risponde con la frase da dire finché c'è una dose da segnare.
+  $('voce-copia').addEventListener('click', function () {
+    var url = (SERVIZIO || location.origin + '/') + 'api/voce/' + DISPOSITIVO;
+    sincronizza();
+    try { navigator.clipboard.writeText(url).then(function () { avviso('Indirizzo copiato: incollalo in Comandi.'); }, function () { avviso('Non riesco a copiarlo: ' + url); }); }
+    catch (e) { avviso('Non riesco a copiarlo: ' + url); }
+  });
   $('tg-invita').addEventListener('click', function () {
     var testo = 'Apri questo collegamento e premi «Avvia»: riceverai su Telegram gli avvisi sulle mie medicine.', url = 'https://t.me/' + bot + '?start=f_' + INVITO;
     if (navigator.share) { navigator.share({ text: testo, url: url }).catch(function () {}); return; }
