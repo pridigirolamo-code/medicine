@@ -256,7 +256,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 44</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 45</p>
 </section>
 
 <!-- ELENCO -->
@@ -510,13 +510,12 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     <button class="btn" type="button" id="notifiche-attiva-imp" hidden>Attiva le notifiche</button>
   </div>
 
-  <div class="panel" id="voce">
-    <h2>Avviso a voce</h2>
-    <div class="solo-ios">
-      <p class="muted">Con l'app Comandi dell'iPhone il telefono dice ad alta voce le medicine da prendere, anche con l'app chiusa, finché non premi «L'ho presa» o «Saltata». Copia l'indirizzo e incollalo nel comando: i passi sono in «Come si usa».</p>
-      <button class="btn" type="button" id="voce-copia">Copia l'indirizzo per Comandi</button>
-    </div>
-    <p class="muted solo-android">Su Android la voce automatica non c'è: le notifiche dell'app suonano e vibrano, e si ripetono ogni minuto finché non segni la medicina. Controlla che il volume delle notifiche sia alto.</p>
+  <p class="panel solo-android">Quando arriva la notifica puoi toccare direttamente <b>«L'ho presa»</b> o <b>«Saltata»</b>, senza aprire l'app. Se non vedi i tasti, trascina la notifica verso il basso per allargarla.</p>
+
+  <div class="panel solo-ios" id="voce">
+    <h2>Avviso a voce <span class="muted" style="font-size: 0.9rem; font-weight: 400">(facoltativo)</span></h2>
+    <p class="muted">Non serve per usare l'app: è un extra che conviene far preparare una volta a un familiare. Con l'app Comandi dell'iPhone il telefono dice ad alta voce le medicine da prendere, finché non premi «L'ho presa» o «Saltata». I passi sono in «Come si usa».</p>
+    <button class="btn ghost" type="button" id="voce-copia">Copia l'indirizzo per Comandi</button>
   </div>
 </section>
 
@@ -604,6 +603,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
         <li>Apri l'app: in alto c'è il riquadro giallo «È ora della medicina».</li>
         <li>Tocca <b>L'ho presa</b>: la pastiglia si toglie dal conto. Se non la prendi, tocca <b>Saltata</b>.</li>
         <li>Finché non tocchi uno dei due, la notifica si ripete ogni minuto.</li>
+        <li class="solo-android">Su Android puoi toccare «L'ho presa» o «Saltata» direttamente nella notifica, senza aprire l'app.</li>
         <li>Se dopo mezz'ora la dose non è segnata, i familiari collegati ricevono un avviso.</li>
       </ol>
     </details>
@@ -653,8 +653,9 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
       </ol>
     </details>
     <details>
-      <summary>Avviso a voce (solo iPhone)</summary>
+      <summary>Avviso a voce (solo iPhone, facoltativo)</summary>
       <ol>
+        <li>Non serve per usare l'app: è un extra, ed è meglio che lo prepari un familiare.</li>
         <li>Con l'app Comandi il telefono può dire ad alta voce le medicine da prendere, anche con l'app chiusa.</li>
         <li>In Impostazioni → Notifiche e avviso a voce tocca «Copia l'indirizzo per Comandi» e incollalo in un comando con: Alle ore → Imposta volume → indirizzo → Ottieni contenuti dell'URL → Leggi ad alta voce.</li>
         <li>Fai un comando per ogni orario (tieni premuto → Duplica, poi cambia l'ora) e controlla che «Automazione» sia acceso e «Avvisa» spento.</li>
@@ -1871,15 +1872,17 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
           $('tg-famiglia').textContent = tg.famiglia === 0 ? 'Nessun familiare collegato. Manda il collegamento a chi deve ricevere gli avvisi.'
             : tg.famiglia === 1 ? '1 familiare collegato: riceve gli avvisi da solo.' : tg.famiglia + ' familiari collegati: ricevono gli avvisi da soli.';
         }
-        // Dosi segnate da Telegram: le segno anche qui e le tolgo dalla scorta, poi lo dico al server.
+        // Dosi segnate fuori dall'app (Telegram o i tasti della notifica su Android): le segno anche qui,
+        // tolgo dalla scorta quelle prese, poi lo dico al server.
         var nuove = (r.prese || []).filter(function (e) { return applicate.indexOf(e.giorno + '#' + e.chiave) < 0; });
         if (!nuove.length) return;
         nuove.forEach(function (e) {
           applicate.push(e.giorno + '#' + e.chiave);
           var id = e.chiave.split('|')[0], m = medicine.filter(function (x) { return String(x.id) === id; })[0], oggi = giornata();
-          if (m && m.orari.length) m.rimaste = Math.max(0, m.rimaste - m.alGiorno / m.orari.length);
+          var esito = e.esito === 'saltata' ? 'saltata' : 'presa';
+          if (m && m.orari.length && esito === 'presa') m.rimaste = Math.max(0, m.rimaste - m.alGiorno / m.orari.length);
           if (e.giorno === oggi.giorno && oggi.fatte.indexOf(e.chiave) < 0) { oggi.fatte.push(e.chiave); scrivi('dosi', oggi); }
-          if (m) annota(e.giorno, m, e.chiave.split('|')[1], 'presa');
+          if (m) annota(e.giorno, m, e.chiave.split('|')[1], esito);
         });
         applicate = applicate.slice(-100); scrivi('applicate', applicate);
         salva();
@@ -1899,6 +1902,8 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     catch (e) { avviso('Non riesco a copiare il collegamento da questo telefono.'); }
   });
 
+  // Un tasto della notifica ha segnato una dose: chiedo subito al server, così l'app si aggiorna.
+  if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function (e) { if (e.data === 'aggiorna') sincronizza(); });
   function giro() { chiudiGiornata(); disegna(); controllaDosi(); sincronizza(); }
   // All'avvio: se il permesso c'è già ma manca l'iscrizione (per esempio dopo un aggiornamento), la rifaccio da solo.
   disegnaNotifiche();

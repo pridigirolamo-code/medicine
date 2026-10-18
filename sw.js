@@ -1,6 +1,6 @@
 // Tiene una copia dell'app sul telefono, così si apre anche senza internet.
 // Cambiare VERSIONE a ogni aggiornamento dei file.
-var VERSIONE = 'medicine-44';
+var VERSIONE = 'medicine-45';
 var FILE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-180.png'];
 
 self.addEventListener('install', function (e) {
@@ -29,18 +29,33 @@ self.addEventListener('fetch', function (e) {
 // Il server sveglia il telefono all'ora della medicina, anche con l'app chiusa: chiedo il testo e mostro la notifica.
 // Pubblicata su GitHub, l'app usa il server online; servita dal suo server (in casa) usa quello.
 var SERVIZIO = /\.github\.io$/.test(self.location.hostname) ? 'https://medicine-server-production.up.railway.app/' : './';
+// Su Android la notifica ha anche i tasti «L'ho presa» e «Saltata» (l'iPhone non li mostra: lì si tocca la notifica e si apre l'app).
 self.addEventListener('push', function (e) {
+  var endpoint = '';
   e.waitUntil(self.registration.pushManager.getSubscription().then(function (s) {
-    return fetch(SERVIZIO + 'api/notifica', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: s && s.endpoint }) });
+    endpoint = s ? s.endpoint : '';
+    return fetch(SERVIZIO + 'api/notifica', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: endpoint }) });
   }).then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (j) {
     var testo = j && j.testi && j.testi.length ? j.testi.join(' ') : 'È ora della medicina: apri l\'app per segnarla.';
-    return self.registration.showNotification('Le mie medicine', { body: testo, icon: 'icon-192.png', badge: 'icon-192.png', tag: 'medicina', renotify: true });
+    var dosi = j && Array.isArray(j.dosi) ? j.dosi : [];
+    var opzioni = { body: testo, icon: 'icon-192.png', badge: 'icon-192.png', tag: 'medicina', renotify: true, vibrate: [300, 150, 300], data: { dosi: dosi, endpoint: endpoint } };
+    if (dosi.length) opzioni.actions = [{ action: 'presa', title: dosi.length > 1 ? 'Le ho prese' : 'L\'ho presa' }, { action: 'saltata', title: 'Saltata' }];
+    return self.registration.showNotification('Le mie medicine', opzioni);
   }));
 });
 
-// Toccando l'avviso della medicina si torna all'app.
+// Un tasto della notifica segna la dose sul server (l'app la riceve alla prossima apertura);
+// toccando la notifica, invece, si torna all'app.
 self.addEventListener('notificationclick', function (e) {
   e.notification.close();
+  var d = e.notification.data || {};
+  if ((e.action === 'presa' || e.action === 'saltata') && d.dosi && d.dosi.length) {
+    e.waitUntil(fetch(SERVIZIO + 'api/segna', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: d.endpoint, dosi: d.dosi, esito: e.action }) })
+      .then(function () { return self.clients.matchAll({ type: 'window' }); })
+      .then(function (aperte) { aperte.forEach(function (c) { c.postMessage('aggiorna'); }); })
+      .catch(function () { return self.registration.showNotification('Le mie medicine', { body: 'Non sono riuscito a segnarla: apri l\'app e segnala lì.', icon: 'icon-192.png', tag: 'medicina' }); }));
+    return;
+  }
   e.waitUntil(self.clients.matchAll({ type: 'window' }).then(function (aperte) {
     return aperte.length ? aperte[0].focus() : self.clients.openWindow('./');
   }));
