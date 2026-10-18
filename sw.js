@@ -1,6 +1,6 @@
 // Tiene una copia dell'app sul telefono, così si apre anche senza internet.
 // Cambiare VERSIONE a ogni aggiornamento dei file.
-var VERSIONE = 'medicine-45';
+var VERSIONE = 'medicine-46';
 var FILE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-180.png'];
 
 self.addEventListener('install', function (e) {
@@ -36,7 +36,8 @@ self.addEventListener('push', function (e) {
     endpoint = s ? s.endpoint : '';
     return fetch(SERVIZIO + 'api/notifica', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: endpoint }) });
   }).then(function (r) { return r.json(); }).catch(function () { return {}; }).then(function (j) {
-    var testo = j && j.testi && j.testi.length ? j.testi.join(' ') : 'È ora della medicina: apri l\'app per segnarla.';
+    // Se il server non risponde, un testo che va bene per qualsiasi avviso (medicine o richieste di accesso).
+    var testo = j && j.testi && j.testi.length ? j.testi.join(' ') : 'C\'è un nuovo avviso: apri l\'app.';
     var dosi = j && Array.isArray(j.dosi) ? j.dosi : [];
     var opzioni = { body: testo, icon: 'icon-192.png', badge: 'icon-192.png', tag: 'medicina', renotify: true, vibrate: [300, 150, 300], data: { dosi: dosi, endpoint: endpoint } };
     if (dosi.length) opzioni.actions = [{ action: 'presa', title: dosi.length > 1 ? 'Le ho prese' : 'L\'ho presa' }, { action: 'saltata', title: 'Saltata' }];
