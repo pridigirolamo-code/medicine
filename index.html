@@ -116,6 +116,15 @@ textarea { resize: vertical }
 .momenti { display: grid; grid-template-columns: 1fr 1fr; gap: 6px }
 .misure-tipo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px }
 .consigli { gap: 6px; font-size: 0.95rem }
+/* Guida «Come si usa»: titoli da toccare, ognuno apre i suoi passi */
+.guida { gap: 0 }
+.guida > h2, .guida > p { margin-bottom: 8px }
+.guida details { border-top: 1px solid var(--line) }
+.guida summary { cursor: pointer; font-weight: 700; padding: 12px 0; list-style: none; display: flex; justify-content: space-between; align-items: center }
+.guida summary::-webkit-details-marker { display: none }
+.guida summary::after { content: "›"; font-size: 1.4rem; line-height: 1; color: var(--muted); transition: transform .15s }
+.guida details[open] summary::after { transform: rotate(90deg) }
+.guida ol { margin: 0 0 12px; padding-left: 1.3em; font-size: 0.95rem; display: flex; flex-direction: column; gap: 6px }
 .misure-righe { gap: 0 }
 .misura-riga { display: grid; grid-template-columns: 82px 1fr auto; gap: 8px; align-items: center; padding: 6px 4px;
   border-bottom: 1px solid var(--line); font-size: 0.92rem }
@@ -218,7 +227,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 39</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 40</p>
 </section>
 
 <!-- ELENCO -->
@@ -493,13 +502,92 @@ textarea { resize: vertical }
     </div>
   </div>
 
-  <div class="panel consigli">
+  <!-- Guida: solo i titoli, si tocca quello che interessa per aprirlo -->
+  <div class="panel guida">
     <h2>Come si usa</h2>
-    <p><b>Ogni giorno:</b> all'avviso apri l'app e tocca «L'ho presa» (o «Saltata»): le pastiglie si scalano da sole.</p>
-    <p><b>Scatola nuova:</b> in «Elenco medicine» tocca «Scatola» e scegli quante ne hai comprate.</p>
-    <p><b>Ricetta:</b> in «Riepiloghi» → «Ricetta per il dottore» ti propongo le scatole per un mese.</p>
-    <p><b>Salute:</b> quando misuri pressione, saturazione o glicemia, tocca il tasto e scrivi i valori.</p>
-    <p><b>Copia di sicurezza:</b> salvane una ogni tanto, qui sopra: se cambi telefono la ricarichi con «Ripristina».</p>
+    <p class="muted">Tocca un argomento per leggere la spiegazione.</p>
+    <details>
+      <summary>Primi passi</summary>
+      <ol>
+        <li>Metti l'app sulla schermata Home: su iPhone, in Safari, tocca Condividi → «Aggiungi alla schermata Home». Da lì in poi aprila sempre dall'icona.</li>
+        <li>Qui in Impostazioni scrivi il <b>nome</b> di chi prende le medicine.</li>
+        <li>Attiva le <b>notifiche</b> e scegli «Consenti».</li>
+        <li>Apri «Elenco medicine» → <b>Aggiungi una medicina</b>: nome, a cosa serve, quante al giorno, quante te ne restano, quante in una scatola, giorni e orari. Tocca «Salva» e ripeti per ogni medicina.</li>
+        <li>Quando hai finito, salva una <b>copia di sicurezza</b> (qui sopra).</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Ogni giorno</summary>
+      <ol>
+        <li>All'ora della medicina arriva una notifica, anche con l'app chiusa.</li>
+        <li>Apri l'app: in alto c'è il riquadro giallo «È ora della medicina».</li>
+        <li>Tocca <b>L'ho presa</b>: la pastiglia si toglie dal conto. Se non la prendi, tocca <b>Saltata</b>.</li>
+        <li>Finché non tocchi uno dei due, la notifica si ripete ogni minuto.</li>
+        <li>Se dopo mezz'ora la dose non è segnata, i familiari collegati ricevono un avviso.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Elenco medicine</summary>
+      <ol>
+        <li><b>Modifica</b>: cambi nome, dosi, orari o quante te ne restano.</li>
+        <li><b>Scatola</b>: quando compri una confezione, scegli 1, 2 o 3 scatole e il conto si aggiorna.</li>
+        <li><b>Calendario</b>: mette un promemoria nel calendario del telefono.</li>
+        <li><b>Togli</b>: toglie la medicina dall'elenco (per qualche secondo puoi annullare).</li>
+        <li>Quando una medicina sta per finire, in prima pagina compare un avviso giallo.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Ricetta e riepiloghi</summary>
+      <ol>
+        <li>In «Riepiloghi» → <b>Ricetta per il dottore</b> l'app propone le scatole per un mese; le cambi con − e +.</li>
+        <li>Con il contatto del dottore salvato, la mandi su WhatsApp o per email con un tasto; altrimenti usa «Condividi».</li>
+        <li>Se l'hai chiesta a voce o al telefono, tocca «Ho già chiesto la ricetta» nell'avviso giallo.</li>
+        <li><b>Riepilogo</b>: tutte le medicine, quante ne restano e per quanti giorni bastano.</li>
+        <li><b>Diario delle dosi</b>: le dosi degli ultimi 14 giorni. Per correggerne una, toccala e scegli «Presa» o «Saltata».</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Per il dottore</summary>
+      <ol>
+        <li>Scrivi le domande da fare alla prossima visita e tocca «Aggiungi».</li>
+        <li>Durante la visita spunta quelle già chieste.</li>
+        <li>«Condividi l'elenco» manda le domande ancora da fare; «Togli quelle già chieste» fa pulizia.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Salute: pressione, saturazione, glicemia</summary>
+      <ol>
+        <li>Quando misuri, tocca Pressione, Saturazione o Glicemia, scrivi i valori e tocca «Salva».</li>
+        <li><b>Vedi i valori misurati</b> apre la tabella degli ultimi 30 giorni; i valori insoliti sono in giallo.</li>
+        <li>Per correggere o togliere una misura tocca <b>Modifica</b> sulla sua riga.</li>
+        <li>Sotto la tabella la mandi al dottore con un tasto. In fondo alla pagina trovi quando è meglio misurare.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Avvisi alla famiglia</summary>
+      <ol>
+        <li><b>Telegram</b> (consigliato): tocca «Manda il collegamento alla famiglia» e invialo. Il familiare lo apre con Telegram e tocca «Avvia».</li>
+        <li>Da quel momento riceve da solo un messaggio se una dose non è segnata entro mezz'ora o se una medicina sta per finire.</li>
+        <li><b>WhatsApp</b>: se scrivi il numero di un familiare, l'app prepara il messaggio e tu lo invii con un tasto.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Voce con Comandi (iPhone)</summary>
+      <ol>
+        <li>Con l'app Comandi il telefono può dire ad alta voce le medicine da prendere, anche con l'app chiusa.</li>
+        <li>Copia l'indirizzo con il tasto qui sopra e incollalo in un comando con: Alle ore → Imposta volume → indirizzo → Ottieni contenuti dell'URL → Leggi ad alta voce.</li>
+        <li>Fai un comando per ogni orario (tieni premuto → Duplica, poi cambia l'ora) e controlla che «Automazione» sia acceso e «Avvisa» spento.</li>
+        <li>La voce parla solo se la medicina non è ancora segnata come presa.</li>
+      </ol>
+    </details>
+    <details>
+      <summary>Copia di sicurezza</summary>
+      <ol>
+        <li>Medicine, diario, misure e annotazioni stanno solo su questo telefono.</li>
+        <li>Ogni tanto tocca <b>Salva una copia</b> e tienila su iCloud, Google Drive o nella mail.</li>
+        <li>Se cambi o perdi il telefono, apri l'app sul nuovo e tocca <b>Ripristina</b>, poi scegli il file della copia.</li>
+      </ol>
+    </details>
   </div>
 </section>
 
