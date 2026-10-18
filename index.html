@@ -256,7 +256,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 46</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 47</p>
 </section>
 
 <!-- ELENCO -->
@@ -1727,6 +1727,8 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   // DISPOSITIVO è la chiave segreta di questo telefono verso il server; INVITO è il codice che finisce nei collegamenti di Telegram.
   var DISPOSITIVO = leggi('dispositivo', '') || casuale(), INVITO = leggi('invito', '') || casuale();
   scrivi('dispositivo', DISPOSITIVO); scrivi('invito', INVITO);
+  // Lo lascio anche dove lo legge il service worker: le notifiche lo mandano al server, che così riconosce sempre questo telefono.
+  try { caches.open('medicine-dati').then(function (c) { return c.put('dispositivo', new Response(DISPOSITIVO)); }).catch(function () {}); } catch (e) {}
   // Pubblicata su GitHub, l'app parla con il server online; servita dal suo server (in casa) usa quello.
   var SERVIZIO = /\.github\.io$/.test(location.hostname) ? 'https://medicine-server-production.up.railway.app/' : '';
   var serverAvvisa = leggi('server-avvisa', false), applicate = leggi('applicate', []), senzaServizio = false, bot = '';
