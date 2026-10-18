@@ -137,6 +137,10 @@ textarea { resize: vertical }
 .simbolo svg { width: 22px; height: 22px }
 /* Guida «Come si usa»: titoli da toccare, ognuno apre i suoi passi */
 .guida { gap: 0 }
+/* Righe del menu delle Impostazioni: una freccetta a destra dice che si apre un'altra pagina */
+.row.sotto::after { content: "›"; margin-left: auto; font-size: 1.5rem; line-height: 1; color: var(--muted) }
+.row.sotto .txt span:empty { display: none }
+html:not(.android) .solo-android, html.android .solo-ios { display: none }
 .guida > h2, .guida > p { margin-bottom: 8px }
 .guida details { border-top: 1px solid var(--line) }
 .guida summary { cursor: pointer; font-weight: 700; padding: 12px 0; list-style: none; display: flex; justify-content: space-between; align-items: center }
@@ -220,7 +224,7 @@ textarea { resize: vertical }
   <div class="panel warn" id="accessi-avviso" role="status" hidden>
     <span class="tag">Richiesta di accesso</span>
     <p id="accessi-avviso-testo"></p>
-    <button class="btn" type="button" data-go="impostazioni" id="accessi-vai">Rispondi</button>
+    <button class="btn" type="button" data-go="imp-accessi" id="accessi-vai">Rispondi</button>
   </div>
 
   <div class="panel warn" id="famiglia-attesa" role="status" hidden>
@@ -252,7 +256,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 43</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 44</p>
 </section>
 
 <!-- ELENCO -->
@@ -292,7 +296,7 @@ textarea { resize: vertical }
     <ul class="list" id="ricetta-lista"></ul>
     <a class="btn ok" id="dottore-whatsapp" target="_blank" rel="noopener" hidden>Manda al dottore su WhatsApp</a>
     <a class="btn" id="dottore-email" hidden>Manda al dottore per email</a>
-    <button class="link-piccolo" type="button" id="dottore-cambia" data-go="impostazioni" style="align-self: flex-start">Aggiungi il contatto del dottore</button>
+    <button class="link-piccolo" type="button" id="dottore-cambia" data-go="imp-dottore" style="align-self: flex-start">Aggiungi il contatto del dottore</button>
     <div class="pair">
       <button class="btn" type="button" id="ricetta-condividi">Condividi</button>
       <button class="btn ghost" type="button" id="ricetta-chiudi">Chiudi</button>
@@ -453,11 +457,36 @@ textarea { resize: vertical }
   </form>
 </section>
 
-<!-- IMPOSTAZIONI: le cose da preparare una volta -->
+<!-- IMPOSTAZIONI: le cose da preparare una volta, ognuna nella sua pagina -->
 <section id="impostazioni" class="compatta" hidden>
   <button class="back" type="button" data-go="casa"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Torna all'inizio</button>
   <h2>Impostazioni</h2>
+  <div class="menu">
+    <button class="row sotto" type="button" data-go="imp-accessi" id="riga-accessi" hidden><div class="txt"><strong>Richieste di accesso</strong><span id="sub-accessi"></span></div></button>
+    <button class="row sotto" type="button" data-go="imp-nome"><div class="txt"><strong>Nome</strong><span id="sub-nome"></span></div></button>
+    <button class="row sotto" type="button" data-go="imp-notifiche"><div class="txt"><strong>Notifiche e avviso a voce</strong><span id="sub-notifiche"></span></div></button>
+    <button class="row sotto" type="button" data-go="imp-dottore"><div class="txt"><strong>Contatto del dottore</strong><span id="sub-dottore"></span></div></button>
+    <button class="row sotto" type="button" data-go="imp-famiglia"><div class="txt"><strong>Avvisi alla famiglia</strong><span id="riass-famiglia"></span></div></button>
+    <button class="row sotto" type="button" data-go="imp-copia"><div class="txt"><strong>Copia di sicurezza</strong><span id="sub-copia"></span></div></button>
+    <button class="row sotto" type="button" data-go="imp-consiglia"><div class="txt"><strong>Fai provare l'app a qualcuno</strong><span>Con un messaggio o un codice da inquadrare.</span></div></button>
+    <button class="row sotto" type="button" data-go="imp-guida"><div class="txt"><strong>Come si usa</strong><span>Le spiegazioni, argomento per argomento.</span></div></button>
+  </div>
+</section>
 
+<section id="imp-accessi" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
+  <div class="panel" id="accessi">
+    <h2>Richieste di accesso</h2>
+    <ul class="list" id="accessi-attesa"></ul>
+    <p class="muted" id="accessi-nessuna">Nessuna richiesta in attesa.</p>
+    <span class="tag">Hanno già l'accesso</span>
+    <ul class="list" id="accessi-approvati"></ul>
+    <p class="muted" id="accessi-vecchi" hidden style="font-size: 0.88rem"></p>
+  </div>
+</section>
+
+<section id="imp-nome" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
   <div class="panel">
     <h2>Nome</h2>
     <p class="muted" id="nome-stato"></p>
@@ -471,13 +500,28 @@ textarea { resize: vertical }
       </div>
     </form>
   </div>
+</section>
 
+<section id="imp-notifiche" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
   <div class="panel">
     <h2>Notifiche</h2>
     <p class="muted" id="notifiche-stato"></p>
     <button class="btn" type="button" id="notifiche-attiva-imp" hidden>Attiva le notifiche</button>
   </div>
 
+  <div class="panel" id="voce">
+    <h2>Avviso a voce</h2>
+    <div class="solo-ios">
+      <p class="muted">Con l'app Comandi dell'iPhone il telefono dice ad alta voce le medicine da prendere, anche con l'app chiusa, finché non premi «L'ho presa» o «Saltata». Copia l'indirizzo e incollalo nel comando: i passi sono in «Come si usa».</p>
+      <button class="btn" type="button" id="voce-copia">Copia l'indirizzo per Comandi</button>
+    </div>
+    <p class="muted solo-android">Su Android la voce automatica non c'è: le notifiche dell'app suonano e vibrano, e si ripetono ogni minuto finché non segni la medicina. Controlla che il volume delle notifiche sia alto.</p>
+  </div>
+</section>
+
+<section id="imp-dottore" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
   <form class="panel" id="dottore-form">
     <h2>Contatto del dottore</h2>
     <p class="muted">Scrivi il WhatsApp o l'email del dottore: basta uno dei due. Poi ricetta, diario e misure gli arrivano con un tasto.</p>
@@ -485,11 +529,10 @@ textarea { resize: vertical }
     <div><label for="dottore-indirizzo">Email del dottore</label><input type="email" id="dottore-indirizzo" autocomplete="off" placeholder="Per esempio: dottore@esempio.it"></div>
     <button class="btn" type="submit">Salva il contatto</button>
   </form>
+</section>
 
-  <div class="panel">
-    <h2>Avvisi alla famiglia</h2>
-    <p class="muted" id="riass-famiglia"></p>
-  </div>
+<section id="imp-famiglia" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
   <div class="panel" id="telegram" hidden>
     <h2>Su Telegram</h2>
     <p class="muted">I familiari collegati ricevono da soli, su Telegram, un avviso se una dose non viene segnata entro mezz'ora o se una medicina sta per finire.</p>
@@ -503,13 +546,10 @@ textarea { resize: vertical }
     <div><label for="fam-numero">Numero WhatsApp di un familiare</label><input type="tel" id="fam-numero" autocomplete="off" placeholder="Per esempio: 333 123 4567"></div>
     <button class="btn" type="submit">Salva il numero</button>
   </form>
+</section>
 
-  <div class="panel" id="voce">
-    <h2>Voce con Comandi (iPhone)</h2>
-    <p class="muted">Per far dire al telefono ad alta voce, ogni minuto, le medicine da prendere, finché non premi «L'ho presa» o «Saltata». Questo indirizzo va incollato nel comando di Comandi.</p>
-    <button class="btn" type="button" id="voce-copia">Copia l'indirizzo per Comandi</button>
-  </div>
-
+<section id="imp-copia" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
   <div class="panel" id="copia">
     <h2>Copia di sicurezza</h2>
     <p class="muted" id="copia-stato">Le medicine sono salvate solo su questo telefono. Tieni una copia nelle note, nella mail o su iCloud: se cambi o perdi il telefono, la ricarichi da qui.</p>
@@ -526,18 +566,10 @@ textarea { resize: vertical }
       </div>
     </div>
   </div>
+</section>
 
-  <!-- Solo sul telefono di chi gestisce l'app: chi chiede di usarla e chi ce l'ha già -->
-  <div class="panel" id="accessi" hidden>
-    <h2>Richieste di accesso</h2>
-    <ul class="list" id="accessi-attesa"></ul>
-    <p class="muted" id="accessi-nessuna">Nessuna richiesta in attesa.</p>
-    <span class="tag">Hanno già l'accesso</span>
-    <ul class="list" id="accessi-approvati"></ul>
-    <p class="muted" id="accessi-vecchi" hidden style="font-size: 0.88rem"></p>
-  </div>
-
-  <!-- Per far provare l'app senza scrivere l'indirizzo: un messaggio o un codice da inquadrare -->
+<section id="imp-consiglia" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
   <div class="panel" id="consiglia">
     <h2>Fai provare l'app a qualcuno</h2>
     <p class="muted">Non serve scrivere l'indirizzo: mandalo con un messaggio, oppure fai inquadrare il codice con la fotocamera del suo telefono. Poi l'app spiega da sola come metterla sulla schermata.</p>
@@ -548,8 +580,10 @@ textarea { resize: vertical }
       <p class="muted">Inquadralo con la fotocamera del telefono e tocca la scritta gialla che compare.</p>
     </div>
   </div>
+</section>
 
-  <!-- Guida: solo i titoli, si tocca quello che interessa per aprirlo -->
+<section id="imp-guida" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
   <div class="panel guida">
     <h2>Come si usa</h2>
     <p class="muted">Tocca un argomento per leggere la spiegazione.</p>
@@ -557,10 +591,10 @@ textarea { resize: vertical }
       <summary>Primi passi</summary>
       <ol>
         <li id="passo-home">L'app va messa sulla schermata del telefono: apri il suo indirizzo con Safari (iPhone) o Chrome (Android) e compare da sola una guida passo passo. Da lì in poi aprila sempre dall'icona con la capsula.</li>
-        <li>Qui in Impostazioni scrivi il <b>nome</b> di chi prende le medicine.</li>
+        <li>In Impostazioni → <b>Nome</b> scrivi il nome di chi prende le medicine.</li>
         <li>Attiva le <b>notifiche</b> e scegli «Consenti».</li>
         <li>Apri «Elenco medicine» → <b>Aggiungi una medicina</b>: nome, a cosa serve, quante al giorno, quante te ne restano, quante in una scatola, giorni e orari. Tocca «Salva» e ripeti per ogni medicina.</li>
-        <li>Quando hai finito, salva una <b>copia di sicurezza</b> (qui sopra).</li>
+        <li>Quando hai finito, salva una <b>copia di sicurezza</b> (Impostazioni → Copia di sicurezza).</li>
       </ol>
     </details>
     <details>
@@ -619,10 +653,10 @@ textarea { resize: vertical }
       </ol>
     </details>
     <details>
-      <summary>Voce con Comandi (iPhone)</summary>
+      <summary>Avviso a voce (solo iPhone)</summary>
       <ol>
         <li>Con l'app Comandi il telefono può dire ad alta voce le medicine da prendere, anche con l'app chiusa.</li>
-        <li>Copia l'indirizzo con il tasto qui sopra e incollalo in un comando con: Alle ore → Imposta volume → indirizzo → Ottieni contenuti dell'URL → Leggi ad alta voce.</li>
+        <li>In Impostazioni → Notifiche e avviso a voce tocca «Copia l'indirizzo per Comandi» e incollalo in un comando con: Alle ore → Imposta volume → indirizzo → Ottieni contenuti dell'URL → Leggi ad alta voce.</li>
         <li>Fai un comando per ogni orario (tieni premuto → Duplica, poi cambia l'ora) e controlla che «Automazione» sia acceso e «Avvisa» spento.</li>
         <li>La voce parla solo se la medicina non è ancora segnata come presa.</li>
       </ol>
@@ -631,7 +665,7 @@ textarea { resize: vertical }
       <summary>Copia di sicurezza</summary>
       <ol>
         <li>Medicine, diario, misure e annotazioni stanno solo su questo telefono.</li>
-        <li>Ogni tanto tocca <b>Salva una copia</b> e tienila su iCloud, Google Drive o nella mail.</li>
+        <li>Ogni tanto, in Impostazioni → Copia di sicurezza, tocca <b>Salva una copia</b> e tienila su iCloud, Google Drive o nella mail.</li>
         <li>Se cambi o perdi il telefono, apri l'app sul nuovo e tocca <b>Ripristina</b>, poi scegli il file della copia.</li>
       </ol>
     </details>
@@ -681,7 +715,8 @@ textarea { resize: vertical }
         <li><span class="num">1</span><div>Tocca i <b>tre puntini ⋮</b> in alto a destra.</div></li>
         <li><span class="num">2</span><div>Tocca <b>Installa app</b> oppure <b>Aggiungi a schermata Home</b>.</div></li>
         <li><span class="num">3</span><div>Conferma con <b>Installa</b> (o <b>Aggiungi</b>).</div></li>
-        <li><span class="num">4</span><div>Apri l'app dall'icona con la capsula, sulla schermata del telefono.</div></li>
+        <li><span class="num">4</span><div>Se compare un messaggio di <b>Google Play Protect</b>, tocca <b>Analizza l'app</b> e aspetta: è un controllo normale per le app installate da un sito. Poi conferma l'installazione.</div></li>
+        <li><span class="num">5</span><div>Apri l'app dall'icona con la capsula, sulla schermata del telefono.</div></li>
       </ol>
     </div>
 
@@ -726,18 +761,23 @@ textarea { resize: vertical }
   // La prima pagina e quattro schermate. Ogni schermata aperta entra nella cronologia,
   // così anche il tasto «indietro» del telefono riporta alla schermata di prima.
   // pila: le schermate aperte dopo la prima pagina, nell'ordine.
-  var SCHERMATE = ['casa', 'elenco', 'aggiungi', 'riepiloghi', 'dottore', 'salute', 'impostazioni'], pila = [];
+  var SCHERMATE = ['casa', 'elenco', 'aggiungi', 'riepiloghi', 'dottore', 'salute', 'impostazioni',
+    'imp-accessi', 'imp-nome', 'imp-notifiche', 'imp-dottore', 'imp-famiglia', 'imp-copia', 'imp-consiglia', 'imp-guida'], pila = [];
   function mostra(nome) {
     if (SCHERMATE.indexOf(nome) < 0) nome = 'casa';
     SCHERMATE.forEach(function (s) { $(s).hidden = s !== nome; });
     window.scrollTo(0, 0);
-    if (nome === 'impostazioni') { riempiDottore(); disegnaNotifiche(); }
+    if (nome === 'impostazioni') disegnaImpostazioni();
+    if (nome === 'imp-dottore') riempiDottore();
+    if (nome === 'imp-notifiche') disegnaNotifiche();
   }
   function vai(nome) {
     if (nome === 'casa') { if (pila.length) history.go(-pila.length); else mostra('casa'); return; }
     history.pushState(null, '', '#' + nome); pila.push(nome); mostra(nome);
   }
   function torna() { if (pila.length) history.back(); else mostra('casa'); }
+  // Le pagine dentro Impostazioni hanno il tasto per tornare indietro al menu.
+  document.addEventListener('click', function (e) { if (e.target.closest('[data-torna]')) torna(); });
   window.addEventListener('popstate', function () {
     var nome = location.hash.slice(1);
     if (nome) pila.pop(); else pila = [];
@@ -1644,6 +1684,17 @@ textarea { resize: vertical }
   var sistema = prova || (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ? 'ios'
     : /Android/.test(navigator.userAgent) ? 'android' : '');
   $('passo-home').hidden = installata;
+  // Su Android alcune spiegazioni cambiano (per esempio la voce con Comandi c'è solo su iPhone).
+  document.documentElement.classList.toggle('android', sistema === 'android');
+
+  // Il menu delle Impostazioni: sotto ogni voce, com'è adesso.
+  function disegnaImpostazioni() {
+    var d = dottore(), copiata = leggi('copia-data', '');
+    $('sub-nome').textContent = nomePersona() ? titoloApp() + '.' : 'Non ancora scritto.';
+    $('sub-dottore').textContent = d.whatsapp ? 'WhatsApp +' + d.whatsapp + '.' : d.email ? d.email : 'Non ancora inserito.';
+    $('sub-copia').textContent = copiata ? 'Ultima copia ' + etichettaGiorno(copiata) + '.' : 'Mai salvata: salvane una.';
+    disegnaNotifiche();
+  }
   var saltato = false; try { saltato = sessionStorage.getItem('medicine.installa-saltata') === '1'; } catch (e) {}
   if (sistema && (prova || !installata) && !saltato) {
     $('installa-' + sistema).hidden = false; $('installa').hidden = false;
@@ -1714,6 +1765,7 @@ textarea { resize: vertical }
     iscrizione().then(function (s) {
       var attive = !!(s && Notification.permission === 'granted');
       $('notifiche-avviso').hidden = attive; $('notifiche-attiva-imp').hidden = attive || Notification.permission === 'denied';
+      $('sub-notifiche').textContent = attive ? 'Notifiche attive.' : 'Notifiche spente: entra qui per attivarle.';
       $('notifiche-stato').textContent = attive ? 'Attive: all\'ora di ogni medicina arriva un avviso, anche con l\'app chiusa, ripetuto ogni minuto finché non premi «L\'ho presa» o «Saltata».'
         : Notification.permission === 'denied' ? 'Spente: le hai negate. Per riattivarle vai in Impostazioni del telefono → Notifiche → Le mie medicine.'
         : 'Spente: tocca il tasto qui sotto e scegli «Consenti».';
@@ -1782,6 +1834,7 @@ textarea { resize: vertical }
         li.appendChild(tasti); ul.appendChild(li);
       });
     });
+    $('sub-accessi').textContent = !attesa.length ? 'Nessuna richiesta in attesa.' : attesa.length === 1 ? '1 richiesta da guardare.' : attesa.length + ' richieste da guardare.';
     // In prima pagina un avviso giallo, finché ci sono richieste da guardare.
     $('accessi-avviso').hidden = !attesa.length;
     $('accessi-avviso-testo').textContent = attesa.length === 1 ? (attesa[0].nome || 'Qualcuno') + ' chiede di usare l\'app.' : attesa.length + ' persone chiedono di usare l\'app.';
@@ -1808,7 +1861,7 @@ textarea { resize: vertical }
         if (accesso !== 'approvato') return;
         // Appena approvato mando subito le medicine vere (prima ne mandavo un elenco vuoto).
         if (prima !== 'approvato') { sincronizza(); return; }
-        $('accessi').hidden = !r.amministratore;
+        $('riga-accessi').hidden = !r.amministratore;
         if (r.amministratore) disegnaAccessi(r.richieste || []);
         var tg = r.telegram; bot = tg ? tg.bot : ''; tgFamiglia = tg ? tg.famiglia : 0; disegnaFamiglia();
         // Con almeno un familiare su Telegram gli avvisi alla famiglia li manda il server: qui non preparo quelli di WhatsApp.
