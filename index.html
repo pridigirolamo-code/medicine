@@ -116,6 +116,9 @@ textarea { resize: vertical }
 .momenti { display: grid; grid-template-columns: 1fr 1fr; gap: 6px }
 .misure-tipo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px }
 .consigli { gap: 6px; font-size: 0.95rem }
+/* Codice QR: sempre nero su bianco, anche col tema scuro, così la fotocamera lo legge */
+.qr-box { display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center }
+#consiglia-codice { background: #fff; padding: 12px; border-radius: 12px; width: 244px; height: 244px }
 /* Benvenuto: a tutto schermo, passi numerati grandi */
 .installa { position: fixed; inset: 0; z-index: 50; overflow-y: auto; background: var(--bg);
   padding: calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)) }
@@ -243,7 +246,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 41</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 42</p>
 </section>
 
 <!-- ELENCO -->
@@ -515,6 +518,18 @@ textarea { resize: vertical }
         <button class="btn" type="button" id="copia-sostituisci">Sostituisci</button>
         <button class="btn ghost" type="button" id="copia-annulla">Annulla</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Per far provare l'app senza scrivere l'indirizzo: un messaggio o un codice da inquadrare -->
+  <div class="panel" id="consiglia">
+    <h2>Fai provare l'app a qualcuno</h2>
+    <p class="muted">Non serve scrivere l'indirizzo: mandalo con un messaggio, oppure fai inquadrare il codice con la fotocamera del suo telefono. Poi l'app spiega da sola come metterla sulla schermata.</p>
+    <button class="btn" type="button" id="consiglia-manda">Manda il collegamento</button>
+    <button class="btn ghost" type="button" id="consiglia-qr-apri">Mostra il codice da inquadrare</button>
+    <div class="qr-box" id="consiglia-qr" hidden>
+      <div id="consiglia-codice" role="img" aria-label="Codice QR con l'indirizzo dell'app"></div>
+      <p class="muted">Inquadralo con la fotocamera del telefono e tocca la scritta gialla che compare.</p>
     </div>
   </div>
 
@@ -1562,6 +1577,28 @@ textarea { resize: vertical }
     avviso(nome ? 'Fatto: ora sono «Le medicine di ' + nome + '».' : 'Nome tolto.');
   });
   aggiornaNome();
+
+  // --- far provare l'app ---
+  var INDIRIZZO_APP = 'https://pridigirolamo-code.github.io/medicine/';
+  $('consiglia-manda').addEventListener('click', function () {
+    var testo = 'Ti consiglio «Le mie medicine»: ricorda gli orari delle medicine, tiene il conto delle scatole e prepara la ricetta per il dottore. È gratis. ' +
+      'Tocca il collegamento (su iPhone si apre Safari) e segui la guida per metterla sulla schermata del telefono:';
+    if (navigator.share) { navigator.share({ text: testo, url: INDIRIZZO_APP }).catch(function () {}); return; }
+    try { navigator.clipboard.writeText(testo + ' ' + INDIRIZZO_APP).then(function () { avviso('Messaggio copiato: incollalo in WhatsApp o in un SMS.'); }); }
+    catch (e) { avviso('Indirizzo dell\'app: ' + INDIRIZZO_APP); }
+  });
+  // Il codice si disegna con una piccola libreria, scaricata solo quando serve.
+  $('consiglia-qr-apri').addEventListener('click', function () {
+    var box = $('consiglia-qr');
+    box.hidden = !box.hidden; this.textContent = box.hidden ? 'Mostra il codice da inquadrare' : 'Nascondi il codice';
+    if (box.hidden || $('consiglia-codice').childNodes.length) return;
+    function disegnaQR() { new QRCode($('consiglia-codice'), { text: INDIRIZZO_APP, width: 220, height: 220 }); box.scrollIntoView({ block: 'nearest' }); }
+    if (window.QRCode) { disegnaQR(); return; }
+    var s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+    s.onload = disegnaQR;
+    s.onerror = function () { $('consiglia-codice').textContent = 'Serve internet per mostrare il codice. Usa «Manda il collegamento».'; };
+    document.head.appendChild(s);
+  });
 
   // --- benvenuto: mettere l'app sulla schermata Home ---
   // Aperta dal browser di un telefono (non dall'icona), mostro a tutto schermo come installarla.
