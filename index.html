@@ -217,6 +217,12 @@ textarea { resize: vertical }
     <button class="btn ghost" type="button" id="scorte-segna">Ho già chiesto la ricetta</button>
   </div>
 
+  <div class="panel warn" id="accessi-avviso" role="status" hidden>
+    <span class="tag">Richiesta di accesso</span>
+    <p id="accessi-avviso-testo"></p>
+    <button class="btn" type="button" data-go="impostazioni" id="accessi-vai">Rispondi</button>
+  </div>
+
   <div class="panel warn" id="famiglia-attesa" role="status" hidden>
     <span class="tag">Famiglia</span>
     <p>C'è un avviso pronto per la tua famiglia. Premi il tasto verde, poi premi «Invia» su WhatsApp.</p>
@@ -246,7 +252,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 42</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 43</p>
 </section>
 
 <!-- ELENCO -->
@@ -521,6 +527,16 @@ textarea { resize: vertical }
     </div>
   </div>
 
+  <!-- Solo sul telefono di chi gestisce l'app: chi chiede di usarla e chi ce l'ha già -->
+  <div class="panel" id="accessi" hidden>
+    <h2>Richieste di accesso</h2>
+    <ul class="list" id="accessi-attesa"></ul>
+    <p class="muted" id="accessi-nessuna">Nessuna richiesta in attesa.</p>
+    <span class="tag">Hanno già l'accesso</span>
+    <ul class="list" id="accessi-approvati"></ul>
+    <p class="muted" id="accessi-vecchi" hidden style="font-size: 0.88rem"></p>
+  </div>
+
   <!-- Per far provare l'app senza scrivere l'indirizzo: un messaggio o un codice da inquadrare -->
   <div class="panel" id="consiglia">
     <h2>Fai provare l'app a qualcuno</h2>
@@ -622,6 +638,26 @@ textarea { resize: vertical }
   </div>
 </section>
 
+</div>
+
+<!-- ACCESSO: un telefono nuovo può usare l'app solo dopo il permesso di chi la gestisce -->
+<div class="installa" id="accesso" hidden>
+  <div class="installa-box">
+    <div class="installa-testa"><img src="icon-192.png" alt="" width="64" height="64"><h1>Le mie medicine</h1></div>
+    <form class="installa-box" id="accesso-form">
+      <p class="installa-grande">Per usare l'app serve il permesso di chi te l'ha consigliata. Scrivi il tuo nome e tocca «Chiedi l'accesso».</p>
+      <div><label for="accesso-nome">Il tuo nome e cognome</label>
+        <input type="text" id="accesso-nome" maxlength="40" autocomplete="name" placeholder="Per esempio: Mario Rossi" required></div>
+      <button class="btn ok installa-tasto" type="submit">Chiedi l'accesso</button>
+    </form>
+    <div class="panel warn" id="accesso-attesa" hidden>
+      <p class="installa-grande"><b>Richiesta inviata.</b></p>
+      <p>Appena viene approvata, l'app si apre da sola. Puoi chiudere l'app e riaprirla più tardi.</p>
+    </div>
+    <p class="panel warn" id="accesso-rifiutato" hidden>L'accesso non è stato concesso. Se pensi che sia un errore, chiedi a chi ti ha consigliato l'app e poi richiedilo qui sotto.</p>
+    <p class="muted" style="font-size: 0.88rem"><b>Privacy:</b> le tue medicine restano su questo telefono. Al servizio degli avvisi arrivano solo nomi e orari,
+      e solo dopo l'approvazione, per mandarti le notifiche: non vengono dati a nessuno e vengono cancellati se l'accesso viene tolto.</p>
+  </div>
 </div>
 
 <!-- BENVENUTO: aperta dal browser del telefono, l'app spiega come metterla sulla schermata Home -->
@@ -1693,12 +1729,71 @@ textarea { resize: vertical }
   $('notifiche-attiva').addEventListener('click', attivaNotifiche);
   $('notifiche-attiva-imp').addEventListener('click', attivaNotifiche);
 
+  // --- accesso ---
+  // Il server dice se questo telefono è approvato. Se non lo è, una schermata chiede il nome e manda la richiesta;
+  // l'app si sblocca da sola al primo controllo dopo l'approvazione (ogni mezzo minuto, o alla riapertura).
+  function disegnaAccesso(accesso) {
+    var bloccata = accesso !== 'approvato';
+    $('accesso').hidden = !bloccata;
+    if (!bloccata) return;
+    var inviata = accesso === 'attesa' && leggi('accesso-chiesto', false);
+    $('accesso-form').hidden = inviata; $('accesso-attesa').hidden = !inviata; $('accesso-rifiutato').hidden = accesso !== 'rifiutato';
+  }
+  if (leggi('accesso', '') && leggi('accesso', '') !== 'approvato') disegnaAccesso(leggi('accesso', ''));
+  $('accessi-vai').addEventListener('click', function () { setTimeout(function () { $('accessi').scrollIntoView({ block: 'start' }); }, 0); });
+  $('accesso-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var nome = $('accesso-nome').value.trim(); if (!nome) return;
+    fetch(SERVIZIO + 'api/richiesta', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, nome: nome }) })
+      .then(function (r) { if (!r.ok) throw new Error('servizio'); return r.json(); })
+      .then(function (r) { scrivi('accesso-chiesto', true); scrivi('accesso', r.accesso); disegnaAccesso(r.accesso); if (r.accesso === 'approvato') sincronizza(); })
+      .catch(function () { avviso('Non riesco a mandare la richiesta: controlla di essere collegato a internet e riprova.'); });
+  });
+  // Sul telefono di chi gestisce l'app: le richieste da approvare e chi ha già l'accesso.
+  function decidi(chi, esito, nome) {
+    if (esito === 'rifiutato' && !confirm('Vuoi davvero togliere l\'accesso a ' + nome + '? Non riceverà più gli avvisi.')) return;
+    fetch(SERVIZIO + 'api/accesso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, chi: chi, esito: esito }) })
+      .then(function (r) { if (!r.ok) throw new Error('servizio'); return r.json(); })
+      .then(function (r) { disegnaAccessi(r.richieste || []); avviso(esito === 'approvato' ? 'Accesso dato a ' + nome + '.' : 'Accesso negato a ' + nome + '.'); })
+      .catch(function () { avviso('Non riesco a collegarmi al servizio: riprova fra poco.'); });
+  }
+  function disegnaAccessi(elenco) {
+    var attesa = elenco.filter(function (x) { return x.accesso === 'attesa'; }), dentro = elenco.filter(function (x) { return x.accesso === 'approvato' && x.nome; });
+    // I telefoni collegati prima delle richieste non hanno un nome (il tuo aperto da Safari, quelli di prova): li conto soltanto.
+    var senzaNome = elenco.filter(function (x) { return x.accesso === 'approvato' && !x.nome; }).length;
+    $('accessi-nessuna').hidden = attesa.length > 0;
+    $('accessi-vecchi').hidden = !senzaNome;
+    $('accessi-vecchi').textContent = (dentro.length ? 'In più, ' : '') + (senzaNome === 1 ? '1 telefono collegato' : senzaNome + ' telefoni collegati') + ' prima delle richieste di accesso (per esempio il tuo aperto da Safari o quelli delle prove).';
+    [['accessi-attesa', attesa], ['accessi-approvati', dentro]].forEach(function (c) {
+      var ul = $(c[0]); ul.textContent = '';
+      c[1].forEach(function (x) {
+        var li = document.createElement('li'); li.className = 'item riga' + (x.accesso === 'attesa' ? ' warn' : '');
+        var corpo = document.createElement('div'); corpo.className = 'body';
+        var n = document.createElement('div'); n.className = 'name'; n.textContent = x.nome || 'Telefono senza nome (collegato prima)';
+        corpo.appendChild(n);
+        if (x.quando) { var q = document.createElement('div'); q.className = 'muted'; q.textContent = 'Richiesta del ' + new Date(x.quando).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' }); corpo.appendChild(q); }
+        li.appendChild(corpo);
+        var tasti = document.createElement('div'); tasti.className = 'tasti-dose';
+        (x.accesso === 'attesa' ? [['Approva', 'approvato', 'btn ok small'], ['Rifiuta', 'rifiutato', 'btn ghost small']] : [['Togli accesso', 'rifiutato', 'btn ghost small']]).forEach(function (t) {
+          var b = document.createElement('button'); b.type = 'button'; b.className = t[2]; b.textContent = t[0];
+          b.addEventListener('click', function () { decidi(x.id, t[1], x.nome || 'questo telefono'); });
+          tasti.appendChild(b);
+        });
+        li.appendChild(tasti); ul.appendChild(li);
+      });
+    });
+    // In prima pagina un avviso giallo, finché ci sono richieste da guardare.
+    $('accessi-avviso').hidden = !attesa.length;
+    $('accessi-avviso-testo').textContent = attesa.length === 1 ? (attesa[0].nome || 'Qualcuno') + ' chiede di usare l\'app.' : attesa.length + ' persone chiedono di usare l\'app.';
+  }
+
   function sincronizza() {
     if (senzaServizio) return;
     var g = giornata();
     iscrizione().then(function (s) {
       return fetch(SERVIZIO + 'api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, invito: INVITO,
-        medicine: medicine, giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate,
+        // Le medicine partono solo da un telefono approvato.
+        medicine: leggi('accesso', '') === 'approvato' ? medicine : [], giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate,
         push: s && Notification.permission === 'granted' ? { endpoint: s.endpoint } : null }) });
     })
       .then(function (r) {
@@ -1707,6 +1802,14 @@ textarea { resize: vertical }
         if (!r.ok) throw new Error('servizio');
         return r.json();
       }).then(function (r) {
+        // Accesso: finché chi gestisce l'app non approva questo telefono, l'app resta bloccata.
+        var accesso = r.accesso || 'approvato', prima = leggi('accesso', '');
+        scrivi('accesso', accesso); disegnaAccesso(accesso);
+        if (accesso !== 'approvato') return;
+        // Appena approvato mando subito le medicine vere (prima ne mandavo un elenco vuoto).
+        if (prima !== 'approvato') { sincronizza(); return; }
+        $('accessi').hidden = !r.amministratore;
+        if (r.amministratore) disegnaAccessi(r.richieste || []);
         var tg = r.telegram; bot = tg ? tg.bot : ''; tgFamiglia = tg ? tg.famiglia : 0; disegnaFamiglia();
         // Con almeno un familiare su Telegram gli avvisi alla famiglia li manda il server: qui non preparo quelli di WhatsApp.
         serverAvvisa = !!(tg && tg.famiglia > 0); scrivi('server-avvisa', serverAvvisa);
