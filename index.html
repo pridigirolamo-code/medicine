@@ -116,6 +116,22 @@ textarea { resize: vertical }
 .momenti { display: grid; grid-template-columns: 1fr 1fr; gap: 6px }
 .misure-tipo { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px }
 .consigli { gap: 6px; font-size: 0.95rem }
+/* Benvenuto: a tutto schermo, passi numerati grandi */
+.installa { position: fixed; inset: 0; z-index: 50; overflow-y: auto; background: var(--bg);
+  padding: calc(24px + env(safe-area-inset-top, 0px)) 16px calc(24px + env(safe-area-inset-bottom, 0px)) }
+.installa-box { max-width: 540px; margin-inline: auto; display: flex; flex-direction: column; gap: 16px }
+.installa-testa { display: flex; align-items: center; gap: 12px }
+.installa-testa img { border-radius: 14px }
+.installa-grande { font-size: 1.15rem }
+.installa-tasto { font-size: 1.2rem; min-height: 56px }
+.passi { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 12px }
+.passi li { display: flex; gap: 12px; align-items: flex-start; background: var(--surface); border: 1.5px solid var(--line);
+  border-radius: var(--radius); padding: 12px; font-size: 1.08rem }
+.passi .num { flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--pills); color: var(--on-color);
+  display: grid; place-items: center; font-weight: 700; font-family: var(--display) }
+.simbolo { display: inline-grid; place-items: center; width: 34px; height: 34px; border: 1.5px solid var(--blue); border-radius: 8px;
+  color: var(--blue); vertical-align: middle; margin: 0 2px }
+.simbolo svg { width: 22px; height: 22px }
 /* Guida «Come si usa»: titoli da toccare, ognuno apre i suoi passi */
 .guida { gap: 0 }
 .guida > h2, .guida > p { margin-bottom: 8px }
@@ -227,7 +243,7 @@ textarea { resize: vertical }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 40</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 41</p>
 </section>
 
 <!-- ELENCO -->
@@ -509,7 +525,7 @@ textarea { resize: vertical }
     <details>
       <summary>Primi passi</summary>
       <ol>
-        <li>Metti l'app sulla schermata Home: su iPhone, in Safari, tocca Condividi → «Aggiungi alla schermata Home». Da lì in poi aprila sempre dall'icona.</li>
+        <li id="passo-home">L'app va messa sulla schermata del telefono: apri il suo indirizzo con Safari (iPhone) o Chrome (Android) e compare da sola una guida passo passo. Da lì in poi aprila sempre dall'icona con la capsula.</li>
         <li>Qui in Impostazioni scrivi il <b>nome</b> di chi prende le medicine.</li>
         <li>Attiva le <b>notifiche</b> e scegli «Consenti».</li>
         <li>Apri «Elenco medicine» → <b>Aggiungi una medicina</b>: nome, a cosa serve, quante al giorno, quante te ne restano, quante in una scatola, giorni e orari. Tocca «Salva» e ripeti per ogni medicina.</li>
@@ -591,6 +607,36 @@ textarea { resize: vertical }
   </div>
 </section>
 
+</div>
+
+<!-- BENVENUTO: aperta dal browser del telefono, l'app spiega come metterla sulla schermata Home -->
+<div class="installa" id="installa" hidden>
+  <div class="installa-box">
+    <div class="installa-testa"><img src="icon-192.png" alt="" width="64" height="64"><h1>Le mie medicine</h1></div>
+    <p class="installa-grande">Prima di iniziare, metti l'app sulla schermata del telefono. Ci vuole un minuto: poi la apri con un tocco, come le altre app.</p>
+
+    <ol class="passi" id="installa-ios" hidden>
+      <li><span class="num">1</span><div>Tocca il tasto <b>Condividi</b>
+        <span class="simbolo" aria-label="Condividi"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v14M9 8l5-5 5 5"/><path d="M9 12H6v13h16V12h-3"/></svg></span>: il quadrato con la freccia verso l'alto, in basso sullo schermo. Se non lo vedi, tocca prima i tre puntini <b>···</b> in basso.</div></li>
+      <li><span class="num">2</span><div>Scorri l'elenco verso l'alto e tocca <b>Aggiungi alla schermata Home</b>
+        <span class="simbolo" aria-hidden="true"><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="4" y="4" width="20" height="20" rx="5"/><path d="M14 9v10M9 14h10"/></svg></span>.</div></li>
+      <li><span class="num">3</span><div>Tocca <b>Aggiungi</b>, in alto a destra.</div></li>
+      <li><span class="num">4</span><div>Chiudi questa pagina e apri l'app dall'icona con la capsula, sulla schermata del telefono.</div></li>
+    </ol>
+
+    <div id="installa-android" hidden>
+      <button class="btn ok installa-tasto" type="button" id="installa-tasto" hidden>Installa l'app</button>
+      <ol class="passi">
+        <li><span class="num">1</span><div>Tocca i <b>tre puntini ⋮</b> in alto a destra.</div></li>
+        <li><span class="num">2</span><div>Tocca <b>Installa app</b> oppure <b>Aggiungi a schermata Home</b>.</div></li>
+        <li><span class="num">3</span><div>Conferma con <b>Installa</b> (o <b>Aggiungi</b>).</div></li>
+        <li><span class="num">4</span><div>Apri l'app dall'icona con la capsula, sulla schermata del telefono.</div></li>
+      </ol>
+    </div>
+
+    <p class="muted">Le medicine scritte qui nel browser non passano nell'app: inseriscile dopo, aprendo l'app dall'icona.</p>
+    <button class="link-piccolo" type="button" id="installa-salta">Continua senza installare</button>
+  </div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toast-testo"></span><button type="button" id="toast-annulla" hidden>Annulla</button></div>
@@ -1516,6 +1562,35 @@ textarea { resize: vertical }
     avviso(nome ? 'Fatto: ora sono «Le medicine di ' + nome + '».' : 'Nome tolto.');
   });
   aggiornaNome();
+
+  // --- benvenuto: mettere l'app sulla schermata Home ---
+  // Aperta dal browser di un telefono (non dall'icona), mostro a tutto schermo come installarla.
+  // Su Android Chrome, se il telefono lo permette, basta il tasto «Installa l'app». ?installa=ios|android serve per provarla dal PC.
+  var installata = (window.matchMedia && matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+  var prova = (/[?&]installa=(ios|android)/.exec(location.search) || [])[1];
+  var sistema = prova || (/iPhone|iPad|iPod/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1) ? 'ios'
+    : /Android/.test(navigator.userAgent) ? 'android' : '');
+  $('passo-home').hidden = installata;
+  var saltato = false; try { saltato = sessionStorage.getItem('medicine.installa-saltata') === '1'; } catch (e) {}
+  if (sistema && (prova || !installata) && !saltato) {
+    $('installa-' + sistema).hidden = false; $('installa').hidden = false;
+  }
+  $('installa-salta').addEventListener('click', function () {
+    $('installa').hidden = true;
+    try { sessionStorage.setItem('medicine.installa-saltata', '1'); } catch (e) {}
+  });
+  var richiestaInstalla = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); richiestaInstalla = e; $('installa-tasto').hidden = false;
+  });
+  $('installa-tasto').addEventListener('click', function () {
+    if (!richiestaInstalla) return;
+    richiestaInstalla.prompt();
+    richiestaInstalla.userChoice.then(function (r) {
+      richiestaInstalla = null; $('installa-tasto').hidden = true;
+      if (r.outcome === 'accepted') avviso('Fatto! Ora apri l\'app dall\'icona con la capsula.');
+    });
+  });
 
   // --- Telegram ---
   // Se l'app è servita dal suo server con un bot di Telegram, gli avvisi arrivano anche con l'app chiusa:
