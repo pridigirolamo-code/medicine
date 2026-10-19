@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 49</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 50</p>
 </section>
 
 <!-- ELENCO -->
@@ -1755,7 +1755,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   var INDIRIZZO_APP = 'https://pridigirolamo-code.github.io/medicine/';
   $('consiglia-manda').addEventListener('click', function () {
     var testo = 'Ti consiglio «Le mie medicine»: ricorda gli orari delle medicine, tiene il conto delle scatole e prepara la ricetta per il dottore. È gratis. ' +
-      'Tocca il collegamento (su iPhone si apre Safari) e segui la guida per metterla sulla schermata del telefono:';
+      'Tocca il collegamento e segui la guida per mettere l\'app sulla schermata del telefono:';
     if (navigator.share) { navigator.share({ text: testo, url: INDIRIZZO_APP }).catch(function () {}); return; }
     try { navigator.clipboard.writeText(testo + ' ' + INDIRIZZO_APP).then(function () { avviso('Messaggio copiato: incollalo in WhatsApp o in un SMS.'); }); }
     catch (e) { avviso('Indirizzo dell\'app: ' + INDIRIZZO_APP); }
