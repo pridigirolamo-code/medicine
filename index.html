@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 50</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 51</p>
 </section>
 
 <!-- ELENCO -->
@@ -1752,7 +1752,8 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   disegnaPersone();
 
   // --- far provare l'app ---
-  var INDIRIZZO_APP = 'https://pridigirolamo-code.github.io/medicine/';
+  // L'indirizzo da far girare: una pagina di ingresso con un nome pulito, che porta all'app (che resta dov'è).
+  var INDIRIZZO_APP = 'https://lemiemedicine.github.io/';
   $('consiglia-manda').addEventListener('click', function () {
     var testo = 'Ti consiglio «Le mie medicine»: ricorda gli orari delle medicine, tiene il conto delle scatole e prepara la ricetta per il dottore. È gratis. ' +
       'Tocca il collegamento e segui la guida per mettere l\'app sulla schermata del telefono:';
