@@ -137,6 +137,13 @@ textarea { resize: vertical }
 .simbolo svg { width: 22px; height: 22px }
 /* Guida «Come si usa»: titoli da toccare, ognuno apre i suoi passi */
 .guida { gap: 0 }
+/* Persone: in prima pagina un tasto per nome; il pallino dice quante dosi dell'altra persona aspettano */
+.persone { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 2px }
+.persona { position: relative; border: 1.5px solid var(--pills); background: var(--surface); color: var(--pills); border-radius: 999px;
+  padding: 6px 16px; min-height: 40px; font-weight: 700; font-size: 1rem }
+.persona.attiva { background: var(--pills); color: var(--on-color) }
+.pallino { display: inline-grid; place-items: center; min-width: 22px; height: 22px; margin-left: 6px; padding: 0 5px; border-radius: 999px;
+  background: var(--warn); color: #fff; font-size: 0.8rem }
 /* Righe del menu delle Impostazioni: una freccetta a destra dice che si apre un'altra pagina */
 .row.sotto::after { content: "›"; margin-left: auto; font-size: 1.5rem; line-height: 1; color: var(--muted) }
 .row.sotto .txt span:empty { display: none }
@@ -200,6 +207,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
 <section id="casa">
   <div>
     <h1 id="titolo">Le mie medicine</h1>
+    <div class="persone" id="persone" hidden></div>
     <p class="today" id="oggi"></p>
   </div>
 
@@ -256,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 47</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 48</p>
 </section>
 
 <!-- ELENCO -->
@@ -463,6 +471,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   <h2>Impostazioni</h2>
   <div class="menu">
     <button class="row sotto" type="button" data-go="imp-accessi" id="riga-accessi" hidden><div class="txt"><strong>Richieste di accesso</strong><span id="sub-accessi"></span></div></button>
+    <button class="row sotto" type="button" data-go="imp-persone"><div class="txt"><strong>Persone</strong><span id="sub-persone"></span></div></button>
     <button class="row sotto" type="button" data-go="imp-nome"><div class="txt"><strong>Nome</strong><span id="sub-nome"></span></div></button>
     <button class="row sotto" type="button" data-go="imp-notifiche"><div class="txt"><strong>Notifiche e avviso a voce</strong><span id="sub-notifiche"></span></div></button>
     <button class="row sotto" type="button" data-go="imp-dottore"><div class="txt"><strong>Contatto del dottore</strong><span id="sub-dottore"></span></div></button>
@@ -485,6 +494,20 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   </div>
 </section>
 
+<section id="imp-persone" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
+  <div class="panel">
+    <h2>Persone</h2>
+    <p class="muted">Da questo telefono puoi seguire anche le medicine di un'altra persona, per esempio un familiare. Ognuna ha elenco, diario, misure e ricetta separati. Le notifiche arrivano qui, con il nome davanti.</p>
+    <ul class="list" id="persone-lista"></ul>
+    <p class="muted" id="persone-senza-nome" hidden>Scrivi anche il nome della prima persona (Impostazioni → Nome), così le notifiche dicono di chi sono.</p>
+  </div>
+  <form class="panel" id="persona-form">
+    <h2>Aggiungi una persona</h2>
+    <div><label for="persona-nuova">Nome</label><input type="text" id="persona-nuova" maxlength="30" autocomplete="off" placeholder="Per esempio: Gilda" required></div>
+    <button class="btn ok" type="submit">Aggiungi</button>
+  </form>
+</section>
 <section id="imp-nome" class="compatta" hidden>
   <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
   <div class="panel">
@@ -738,8 +761,16 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   var ORARI = ['med-ora1', 'med-ora2', 'med-ora3'];
 
   // --- memoria locale (solo su questo dispositivo) ---
-  function leggi(chiave, base) { try { var v = localStorage.getItem('medicine.' + chiave); return v ? JSON.parse(v) : base; } catch (e) { return base; } }
-  function scrivi(chiave, v) { try { localStorage.setItem('medicine.' + chiave, JSON.stringify(v)); } catch (e) {} }
+  // Più persone sullo stesso telefono: ogni persona ha i suoi dati, con il suo prefisso («medicine.p…»).
+  // La prima persona usa le chiavi di sempre, così i dati di prima restano dove sono. Per cambiare persona si ricarica la pagina.
+  var DEL_TELEFONO = ['profilo', 'profili', 'accesso', 'accesso-chiesto'];
+  var PROFILO = ''; try { PROFILO = JSON.parse(localStorage.getItem('medicine.profilo') || '""') || ''; } catch (e) {}
+  function chiaveDi(chiave, profilo) {
+    var p = profilo === undefined ? PROFILO : profilo;
+    return 'medicine.' + (p && DEL_TELEFONO.indexOf(chiave) < 0 ? p + '.' : '') + chiave;
+  }
+  function leggi(chiave, base, profilo) { try { var v = localStorage.getItem(chiaveDi(chiave, profilo)); return v ? JSON.parse(v) : base; } catch (e) { return base; } }
+  function scrivi(chiave, v, profilo) { try { localStorage.setItem(chiaveDi(chiave, profilo), JSON.stringify(v)); } catch (e) {} }
 
   function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function giornoBreve(isoData) { var p = isoData.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' }); }
@@ -763,7 +794,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   // così anche il tasto «indietro» del telefono riporta alla schermata di prima.
   // pila: le schermate aperte dopo la prima pagina, nell'ordine.
   var SCHERMATE = ['casa', 'elenco', 'aggiungi', 'riepiloghi', 'dottore', 'salute', 'impostazioni',
-    'imp-accessi', 'imp-nome', 'imp-notifiche', 'imp-dottore', 'imp-famiglia', 'imp-copia', 'imp-consiglia', 'imp-guida'], pila = [];
+    'imp-accessi', 'imp-persone', 'imp-nome', 'imp-notifiche', 'imp-dottore', 'imp-famiglia', 'imp-copia', 'imp-consiglia', 'imp-guida'], pila = [];
   function mostra(nome) {
     if (SCHERMATE.indexOf(nome) < 0) nome = 'casa';
     SCHERMATE.forEach(function (s) { $(s).hidden = s !== nome; });
@@ -1655,6 +1686,70 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   });
   aggiornaNome();
 
+  // --- persone ---
+  // L'elenco delle persone di questo telefono: '' è la prima (le chiavi di sempre), le altre hanno un codice «p…».
+  function profili() { var l = leggi('profili', []); return l.length ? l : ['']; }
+  function nomeDi(id) { return leggi('persona', '', id); }
+  function cambiaPersona(id) { scrivi('profilo', id); location.replace(location.pathname); }
+  // Quante dosi di quella persona sono già all'ora e non ancora segnate (per il pallino sul suo nome).
+  function daSegnare(id) {
+    var d = new Date(), oggi = iso(d), ora = oraAdesso(), g = leggi('dosi', {}, id), fatte = g.giorno === oggi ? g.fatte || [] : [];
+    return leggi('lista', [], id).reduce(function (n, m) {
+      if (m.giorni && m.giorni.indexOf(d.getDay()) < 0) return n;
+      return n + (m.orari || []).filter(function (o) {
+        return o <= ora && !(m.dal === oggi && m.dalleOre && o < m.dalleOre) && fatte.indexOf(m.id + '|' + o) < 0;
+      }).length;
+    }, 0);
+  }
+  function disegnaPersone() {
+    var elenco = profili(), box = $('persone'); box.textContent = '';
+    box.hidden = elenco.length < 2;
+    elenco.forEach(function (id) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'persona' + (id === PROFILO ? ' attiva' : '');
+      b.textContent = nomeDi(id) || 'Senza nome';
+      var n = id === PROFILO ? 0 : daSegnare(id);
+      if (n) { var s = document.createElement('span'); s.className = 'pallino'; s.textContent = n; s.setAttribute('aria-label', n + ' da segnare'); b.appendChild(s); }
+      if (id !== PROFILO) b.addEventListener('click', function () { cambiaPersona(id); });
+      else b.setAttribute('aria-current', 'true');
+      box.appendChild(b);
+    });
+    // In Impostazioni: l'elenco con i tasti per aprire o togliere.
+    var ul = $('persone-lista'); ul.textContent = '';
+    elenco.forEach(function (id) {
+      var li = document.createElement('li'); li.className = 'item riga';
+      var corpo = document.createElement('div'); corpo.className = 'body';
+      var nm = document.createElement('div'); nm.className = 'name'; nm.textContent = nomeDi(id) || 'Senza nome';
+      var sot = document.createElement('div'); sot.className = 'muted'; sot.textContent = (id === PROFILO ? 'Aperta adesso. ' : '') + (id === '' ? 'Prima persona.' : '');
+      corpo.appendChild(nm); corpo.appendChild(sot); li.appendChild(corpo);
+      var tasti = document.createElement('div'); tasti.className = 'tasti-dose';
+      if (id !== PROFILO) { var a = document.createElement('button'); a.type = 'button'; a.className = 'btn small'; a.textContent = 'Apri'; a.addEventListener('click', function () { cambiaPersona(id); }); tasti.appendChild(a); }
+      if (id !== '') { var x = document.createElement('button'); x.type = 'button'; x.className = 'btn ghost small'; x.textContent = 'Togli'; x.addEventListener('click', function () { togliPersona(id); }); tasti.appendChild(x); }
+      li.appendChild(tasti); ul.appendChild(li);
+    });
+    $('persone-senza-nome').hidden = elenco.length < 2 || !!nomeDi('');
+    $('sub-persone').textContent = elenco.length < 2 ? 'Aggiungi un familiare di cui segui le medicine.' : elenco.map(function (id) { return nomeDi(id) || 'Senza nome'; }).join(', ') + '.';
+  }
+  $('persona-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var nome = $('persona-nuova').value.trim().replace(/\s+/g, ' ');
+    if (!nome) return;
+    var id = 'p' + Date.now().toString(36), elenco = profili();
+    elenco.push(id); scrivi('profili', elenco); scrivi('persona', nome, id);
+    cambiaPersona(id);
+  });
+  function togliPersona(id) {
+    var nome = nomeDi(id) || 'questa persona';
+    if (!confirm('Togliere ' + nome + '? Le sue medicine, il diario e le misure su questo telefono verranno cancellati e non riceverai più i suoi avvisi. Se vuoi, prima apri la sua pagina e salva una copia di sicurezza.')) return;
+    // Al server mando un elenco vuoto: così smette subito con i suoi avvisi.
+    var codice = leggi('dispositivo', '', id);
+    if (codice && !senzaServizio) fetch(SERVIZIO + 'api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: codice, principale: PRINCIPALE,
+      medicine: [], giornata: { giorno: '', fatte: [] }, fuso: new Date().getTimezoneOffset(), ricevute: [], push: null }) }).catch(function () {});
+    try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('medicine.' + id + '.') === 0) localStorage.removeItem(k); }); } catch (err) {}
+    scrivi('profili', profili().filter(function (x) { return x !== id; }));
+    if (id === PROFILO) cambiaPersona(''); else { disegnaPersone(); avviso(nome + ' tolta dall\'elenco.'); }
+  }
+  disegnaPersone();
+
   // --- far provare l'app ---
   var INDIRIZZO_APP = 'https://pridigirolamo-code.github.io/medicine/';
   $('consiglia-manda').addEventListener('click', function () {
@@ -1690,6 +1785,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
 
   // Il menu delle Impostazioni: sotto ogni voce, com'è adesso.
   function disegnaImpostazioni() {
+    disegnaPersone();
     var d = dottore(), copiata = leggi('copia-data', '');
     $('sub-nome').textContent = nomePersona() ? titoloApp() + '.' : 'Non ancora scritto.';
     $('sub-dottore').textContent = d.whatsapp ? 'WhatsApp +' + d.whatsapp + '.' : d.email ? d.email : 'Non ancora inserito.';
@@ -1728,7 +1824,9 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   var DISPOSITIVO = leggi('dispositivo', '') || casuale(), INVITO = leggi('invito', '') || casuale();
   scrivi('dispositivo', DISPOSITIVO); scrivi('invito', INVITO);
   // Lo lascio anche dove lo legge il service worker: le notifiche lo mandano al server, che così riconosce sempre questo telefono.
-  try { caches.open('medicine-dati').then(function (c) { return c.put('dispositivo', new Response(DISPOSITIVO)); }).catch(function () {}); } catch (e) {}
+  // Con più persone, il telefono «principale» è quello della prima persona: con lui le notifiche e la voce valgono per tutte.
+  var PRINCIPALE = PROFILO ? leggi('dispositivo', '', '') || DISPOSITIVO : DISPOSITIVO;
+  try { caches.open('medicine-dati').then(function (c) { return c.put('dispositivo', new Response(PRINCIPALE)); }).catch(function () {}); } catch (e) {}
   // Pubblicata su GitHub, l'app parla con il server online; servita dal suo server (in casa) usa quello.
   var SERVIZIO = /\.github\.io$/.test(location.hostname) ? 'https://medicine-server-production.up.railway.app/' : '';
   var serverAvvisa = leggi('server-avvisa', false), applicate = leggi('applicate', []), senzaServizio = false, bot = '';
@@ -1807,7 +1905,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   // Sul telefono di chi gestisce l'app: le richieste da approvare e chi ha già l'accesso.
   function decidi(chi, esito, nome) {
     if (esito === 'rifiutato' && !confirm('Vuoi davvero togliere l\'accesso a ' + nome + '? Non riceverà più gli avvisi.')) return;
-    fetch(SERVIZIO + 'api/accesso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, chi: chi, esito: esito }) })
+    fetch(SERVIZIO + 'api/accesso', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: PRINCIPALE, chi: chi, esito: esito }) })
       .then(function (r) { if (!r.ok) throw new Error('servizio'); return r.json(); })
       .then(function (r) { disegnaAccessi(r.richieste || []); avviso(esito === 'approvato' ? 'Accesso dato a ' + nome + '.' : 'Accesso negato a ' + nome + '.'); })
       .catch(function () { avviso('Non riesco a collegarmi al servizio: riprova fra poco.'); });
@@ -1848,6 +1946,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     var g = giornata();
     iscrizione().then(function (s) {
       return fetch(SERVIZIO + 'api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, invito: INVITO,
+        principale: PROFILO ? PRINCIPALE : '', nomeAvvisi: profili().length > 1 ? nomePersona() : '',
         // Le medicine partono solo da un telefono approvato.
         medicine: leggi('accesso', '') === 'approvato' ? medicine : [], giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate,
         push: s && Notification.permission === 'granted' ? { endpoint: s.endpoint } : null }) });
@@ -1892,7 +1991,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   }
   // L'indirizzo personale che Comandi chiede ogni minuto: risponde con la frase da dire finché c'è una dose da segnare.
   $('voce-copia').addEventListener('click', function () {
-    var url = (SERVIZIO || location.origin + '/') + 'api/voce/' + DISPOSITIVO;
+    var url = (SERVIZIO || location.origin + '/') + 'api/voce/' + PRINCIPALE;
     sincronizza();
     try { navigator.clipboard.writeText(url).then(function () { avviso('Indirizzo copiato: incollalo in Comandi.'); }, function () { avviso('Non riesco a copiarlo: ' + url); }); }
     catch (e) { avviso('Non riesco a copiarlo: ' + url); }
@@ -1906,7 +2005,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
 
   // Un tasto della notifica ha segnato una dose: chiedo subito al server, così l'app si aggiorna.
   if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function (e) { if (e.data === 'aggiorna') sincronizza(); });
-  function giro() { chiudiGiornata(); disegna(); controllaDosi(); sincronizza(); }
+  function giro() { disegnaPersone(); chiudiGiornata(); disegna(); controllaDosi(); sincronizza(); }
   // All'avvio: se il permesso c'è già ma manca l'iscrizione (per esempio dopo un aggiornamento), la rifaccio da solo.
   disegnaNotifiche();
   if (notificheDisponibili() && Notification.permission === 'granted') iscrizione().then(function (s) { if (!s) iscriviti().catch(function () {}); });
