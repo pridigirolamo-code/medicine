@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 48</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 49</p>
 </section>
 
 <!-- ELENCO -->
@@ -500,11 +500,11 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     <h2>Persone</h2>
     <p class="muted">Da questo telefono puoi seguire anche le medicine di un'altra persona, per esempio un familiare. Ognuna ha elenco, diario, misure e ricetta separati. Le notifiche arrivano qui, con il nome davanti.</p>
     <ul class="list" id="persone-lista"></ul>
-    <p class="muted" id="persone-senza-nome" hidden>Scrivi anche il nome della prima persona (Impostazioni → Nome), così le notifiche dicono di chi sono.</p>
+    <p class="muted" id="persone-senza-nome" hidden>Le persone senza nome si chiamano «Persona 1», «Persona 2»… Per scrivere il nome apri la persona e vai in Impostazioni → Nome.</p>
   </div>
   <form class="panel" id="persona-form">
     <h2>Aggiungi una persona</h2>
-    <div><label for="persona-nuova">Nome</label><input type="text" id="persona-nuova" maxlength="30" autocomplete="off" placeholder="Per esempio: Gilda" required></div>
+    <div><label for="persona-nuova">Nome <span class="muted">(facoltativo: puoi scriverlo anche dopo, in Impostazioni → Nome)</span></label><input type="text" id="persona-nuova" maxlength="30" autocomplete="off" placeholder="Per esempio: Gilda"></div>
     <button class="btn ok" type="submit">Aggiungi</button>
   </form>
 </section>
@@ -1690,6 +1690,8 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   // L'elenco delle persone di questo telefono: '' è la prima (le chiavi di sempre), le altre hanno un codice «p…».
   function profili() { var l = leggi('profili', []); return l.length ? l : ['']; }
   function nomeDi(id) { return leggi('persona', '', id); }
+  // Senza nome, una persona si chiama «Persona 1», «Persona 2»… secondo il suo posto nell'elenco.
+  function etichettaDi(id) { return nomeDi(id) || 'Persona ' + (profili().indexOf(id) + 1); }
   function cambiaPersona(id) { scrivi('profilo', id); location.replace(location.pathname); }
   // Quante dosi di quella persona sono già all'ora e non ancora segnate (per il pallino sul suo nome).
   function daSegnare(id) {
@@ -1706,7 +1708,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     box.hidden = elenco.length < 2;
     elenco.forEach(function (id) {
       var b = document.createElement('button'); b.type = 'button'; b.className = 'persona' + (id === PROFILO ? ' attiva' : '');
-      b.textContent = nomeDi(id) || 'Senza nome';
+      b.textContent = etichettaDi(id);
       var n = id === PROFILO ? 0 : daSegnare(id);
       if (n) { var s = document.createElement('span'); s.className = 'pallino'; s.textContent = n; s.setAttribute('aria-label', n + ' da segnare'); b.appendChild(s); }
       if (id !== PROFILO) b.addEventListener('click', function () { cambiaPersona(id); });
@@ -1718,7 +1720,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     elenco.forEach(function (id) {
       var li = document.createElement('li'); li.className = 'item riga';
       var corpo = document.createElement('div'); corpo.className = 'body';
-      var nm = document.createElement('div'); nm.className = 'name'; nm.textContent = nomeDi(id) || 'Senza nome';
+      var nm = document.createElement('div'); nm.className = 'name'; nm.textContent = etichettaDi(id);
       var sot = document.createElement('div'); sot.className = 'muted'; sot.textContent = (id === PROFILO ? 'Aperta adesso. ' : '') + (id === '' ? 'Prima persona.' : '');
       corpo.appendChild(nm); corpo.appendChild(sot); li.appendChild(corpo);
       var tasti = document.createElement('div'); tasti.className = 'tasti-dose';
@@ -1726,19 +1728,18 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
       if (id !== '') { var x = document.createElement('button'); x.type = 'button'; x.className = 'btn ghost small'; x.textContent = 'Togli'; x.addEventListener('click', function () { togliPersona(id); }); tasti.appendChild(x); }
       li.appendChild(tasti); ul.appendChild(li);
     });
-    $('persone-senza-nome').hidden = elenco.length < 2 || !!nomeDi('');
-    $('sub-persone').textContent = elenco.length < 2 ? 'Aggiungi un familiare di cui segui le medicine.' : elenco.map(function (id) { return nomeDi(id) || 'Senza nome'; }).join(', ') + '.';
+    $('persone-senza-nome').hidden = elenco.length < 2 || elenco.every(function (id) { return !!nomeDi(id); });
+    $('sub-persone').textContent = elenco.length < 2 ? 'Aggiungi un familiare di cui segui le medicine.' : elenco.map(etichettaDi).join(', ') + '.';
   }
   $('persona-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var nome = $('persona-nuova').value.trim().replace(/\s+/g, ' ');
-    if (!nome) return;
     var id = 'p' + Date.now().toString(36), elenco = profili();
-    elenco.push(id); scrivi('profili', elenco); scrivi('persona', nome, id);
+    elenco.push(id); scrivi('profili', elenco); if (nome) scrivi('persona', nome, id);
     cambiaPersona(id);
   });
   function togliPersona(id) {
-    var nome = nomeDi(id) || 'questa persona';
+    var nome = etichettaDi(id);
     if (!confirm('Togliere ' + nome + '? Le sue medicine, il diario e le misure su questo telefono verranno cancellati e non riceverai più i suoi avvisi. Se vuoi, prima apri la sua pagina e salva una copia di sicurezza.')) return;
     // Al server mando un elenco vuoto: così smette subito con i suoi avvisi.
     var codice = leggi('dispositivo', '', id);
@@ -1946,7 +1947,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     var g = giornata();
     iscrizione().then(function (s) {
       return fetch(SERVIZIO + 'api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, invito: INVITO,
-        principale: PROFILO ? PRINCIPALE : '', nomeAvvisi: profili().length > 1 ? nomePersona() : '',
+        principale: PROFILO ? PRINCIPALE : '', nomeAvvisi: profili().length > 1 ? etichettaDi(PROFILO) : '',
         // Le medicine partono solo da un telefono approvato.
         medicine: leggi('accesso', '') === 'approvato' ? medicine : [], giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate,
         push: s && Notification.permission === 'granted' ? { endpoint: s.endpoint } : null }) });

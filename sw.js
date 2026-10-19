@@ -1,6 +1,6 @@
 // Tiene una copia dell'app sul telefono, così si apre anche senza internet.
 // Cambiare VERSIONE a ogni aggiornamento dei file.
-var VERSIONE = 'medicine-48';
+var VERSIONE = 'medicine-49';
 // Qui l'app lascia il codice del telefono, così le notifiche lo dicono al server: non si cancella agli aggiornamenti.
 var DATI = 'medicine-dati';
 var FILE = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-180.png'];
