@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 51</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 52</p>
 </section>
 
 <!-- ELENCO -->
@@ -1621,8 +1621,10 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   $('copia-salva').addEventListener('click', function () {
     var testo = JSON.stringify({ app: 'le-mie-medicine', versione: 1, salvata: iso(new Date()), lista: medicine, dottore: dottore(),
       famiglia: numeroFamiglia(), diario: diario, note: note, misure: misure, persona: nomePersona() }, null, 1);
-    var chi = nomePersona().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-    var nome = 'medicine-' + (chi ? chi + '-' : '') + 'copia-' + iso(new Date()) + '.json', file = null;
+    // Sempre lo stesso nome per ogni persona, senza data: salvando nello stesso posto il telefono chiede «Sostituisci?»
+    // e resta un file solo. La data è scritta dentro la copia. Con più persone, chi non ha nome usa «Persona 2» e così via.
+    var chi = (profili().length > 1 ? etichettaDi(PROFILO) : nomePersona()).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    var nome = 'medicine-' + (chi ? chi + '-' : '') + 'copia.json', file = null;
     try { file = new File([testo], nome, { type: 'application/json' }); } catch (e) {}
     function fatto() { scrivi('copia-data', iso(new Date())); aggiornaCopia(); avviso('Copia salvata. Conservala in un posto sicuro.'); }
     if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
