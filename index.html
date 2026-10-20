@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 52</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 53</p>
 </section>
 
 <!-- ELENCO -->
@@ -1628,7 +1628,8 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     try { file = new File([testo], nome, { type: 'application/json' }); } catch (e) {}
     function fatto() { scrivi('copia-data', iso(new Date())); aggiornaCopia(); avviso('Copia salvata. Conservala in un posto sicuro.'); }
     if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-      navigator.share({ files: [file], title: 'Copia delle mie medicine' }).then(fatto, function () {});
+      // Solo il file, senza titolo: sull'iPhone il titolo diventerebbe un secondo file salvato accanto alla copia.
+      navigator.share({ files: [file] }).then(fatto, function () {});
       return;
     }
     var a = document.createElement('a');
