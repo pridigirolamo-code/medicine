@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 53</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 54</p>
 </section>
 
 <!-- ELENCO -->
@@ -1414,6 +1414,14 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
         chiudi.addEventListener('click', function () { inCorrezione = null; disegnaDiario(); });
         box.appendChild(titolo); box.appendChild(ora); box.appendChild(tasti); box.appendChild(chiudi); ul.appendChild(box);
       });
+      // Un giorno passato aperto si richiude con il tasto sotto le sue dosi, o toccando il suo titolo.
+      if (d.g !== oggi) {
+        var richiudi = function () { giorniAperti = giorniAperti.filter(function (g) { return g !== d.g; }); inCorrezione = null; disegnaDiario(); };
+        var c = document.createElement('li'); c.className = 'diario-richiudi';
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'link-piccolo'; b.textContent = 'Richiudi ' + nomeGiorno(d.g).toLowerCase() + ' ‹';
+        b.addEventListener('click', richiudi); c.appendChild(b); ul.appendChild(c);
+        t.setAttribute('role', 'button'); t.tabIndex = 0; t.style.cursor = 'pointer'; t.textContent += ' ‹'; t.addEventListener('click', richiudi);
+      }
     });
     $('diario-vuoto').hidden = giorni.length > 0; $('diario-condividi').hidden = !giorni.length;
     $('diario-suggerimento').hidden = !giorni.length;
