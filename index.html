@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 54</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 55</p>
 </section>
 
 <!-- ELENCO -->
@@ -540,6 +540,12 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     <p class="muted">Non serve per usare l'app: è un extra che conviene far preparare una volta a un familiare. Con l'app Comandi dell'iPhone il telefono dice ad alta voce le medicine da prendere, finché non premi «L'ho presa» o «Saltata». I passi sono in «Come si usa».</p>
     <button class="btn ghost" type="button" id="voce-copia">Copia l'indirizzo per Comandi</button>
   </div>
+
+  <div class="panel solo-ios" id="orologio">
+    <h2>«Ho preso la medicina» dall'Apple Watch <span class="muted" style="font-size: 0.9rem; font-weight: 400">(facoltativo)</span></h2>
+    <p class="muted">Con un comando di Comandi segni le medicine dall'orologio: un tocco sul quadrante, oppure «Ehi Siri, ho preso la medicina». Segna le medicine delle ultime 3 ore non ancora segnate, di tutte le persone di questo telefono. I passi sono in «Come si usa».</p>
+    <button class="btn ghost" type="button" id="orologio-copia">Copia l'indirizzo per l'orologio</button>
+  </div>
 </section>
 
 <section id="imp-dottore" class="compatta" hidden>
@@ -683,6 +689,17 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
         <li>In Impostazioni → Notifiche e avviso a voce tocca «Copia l'indirizzo per Comandi» e incollalo in un comando con: Alle ore → Imposta volume → indirizzo → Ottieni contenuti dell'URL → Leggi ad alta voce.</li>
         <li>Fai un comando per ogni orario (tieni premuto → Duplica, poi cambia l'ora) e controlla che «Automazione» sia acceso e «Avvisa» spento.</li>
         <li>La voce parla solo se la medicina non è ancora segnata come presa.</li>
+      </ol>
+    </details>
+    <details class="solo-ios">
+      <summary>«Ho preso la medicina» dall'Apple Watch (facoltativo)</summary>
+      <ol>
+        <li>In Impostazioni → Notifiche e avviso a voce tocca «Copia l'indirizzo per l'orologio».</li>
+        <li>Apri l'app Comandi, tocca + e crea un comando nuovo, senza «Ora del giorno».</li>
+        <li>Cerca <b>URL</b>, aggiungilo e incolla l'indirizzo. Poi cerca e aggiungi <b>Ottieni contenuti dell'URL</b> e <b>Mostra risultato</b>.</li>
+        <li>Chiama il comando <b>Ho preso la medicina</b>. Nelle sue informazioni (ⓘ) accendi «Mostra su Apple Watch».</li>
+        <li>Sull'orologio: tieni premuto il quadrante → Modifica → aggiungi la complicazione <b>Comandi</b> e scegli «Ho preso la medicina».</li>
+        <li>All'avviso tocca il pulsante sul quadrante, o dì «Ehi Siri, ho preso la medicina»: l'orologio ti dice cosa ha segnato.</li>
       </ol>
     </details>
     <details>
@@ -2007,6 +2024,12 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     var url = (SERVIZIO || location.origin + '/') + 'api/voce/' + PRINCIPALE;
     sincronizza();
     try { navigator.clipboard.writeText(url).then(function () { avviso('Indirizzo copiato: incollalo in Comandi.'); }, function () { avviso('Non riesco a copiarlo: ' + url); }); }
+    catch (e) { avviso('Non riesco a copiarlo: ' + url); }
+  });
+  // L'indirizzo per «Ho preso la medicina» dall'Apple Watch: vale per tutte le persone di questo telefono.
+  $('orologio-copia').addEventListener('click', function () {
+    var url = (SERVIZIO || location.origin + '/') + 'api/presa/' + PRINCIPALE;
+    try { navigator.clipboard.writeText(url).then(function () { avviso('Indirizzo copiato: incollalo nel comando «Ho preso la medicina».'); }, function () { avviso('Non riesco a copiarlo: ' + url); }); }
     catch (e) { avviso('Non riesco a copiarlo: ' + url); }
   });
   $('tg-invita').addEventListener('click', function () {
