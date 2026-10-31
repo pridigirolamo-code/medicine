@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 55</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 56</p>
 </section>
 
 <!-- ELENCO -->
@@ -477,6 +477,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     <button class="row sotto" type="button" data-go="imp-dottore"><div class="txt"><strong>Contatto del dottore</strong><span id="sub-dottore"></span></div></button>
     <button class="row sotto" type="button" data-go="imp-famiglia"><div class="txt"><strong>Avvisi alla famiglia</strong><span id="riass-famiglia"></span></div></button>
     <button class="row sotto" type="button" data-go="imp-copia"><div class="txt"><strong>Copia di sicurezza</strong><span id="sub-copia"></span></div></button>
+    <button class="row sotto" type="button" data-go="imp-memory" id="riga-memory" hidden><div class="txt"><strong>Memory</strong><span id="sub-memory"></span></div></button>
     <button class="row sotto" type="button" data-go="imp-consiglia"><div class="txt"><strong>Fai provare l'app a qualcuno</strong><span>Con un messaggio o un codice da inquadrare.</span></div></button>
     <button class="row sotto" type="button" data-go="imp-guida"><div class="txt"><strong>Come si usa</strong><span>Le spiegazioni, argomento per argomento.</span></div></button>
   </div>
@@ -546,6 +547,21 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     <p class="muted">Con un comando di Comandi segni le medicine dall'orologio: un tocco sul quadrante, oppure «Ehi Siri, ho preso la medicina». Segna le medicine delle ultime 3 ore non ancora segnate, di tutte le persone di questo telefono. I passi sono in «Come si usa».</p>
     <button class="btn ghost" type="button" id="orologio-copia">Copia l'indirizzo per l'orologio</button>
   </div>
+</section>
+
+<!-- Memory, l'assistente personale: riceve le scorte e avvisa quando una medicina sta per finire -->
+<section id="imp-memory" class="compatta" hidden>
+  <button class="back" type="button" data-torna><svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 5l-9 9 9 9"/></svg>Impostazioni</button>
+  <form class="panel" id="memory-form">
+    <h2>Memory</h2>
+    <p class="muted">Collegata a Memory, l'app gli manda le medicine di tutte le persone di questo telefono: quante ne restano, quante al giorno e quali dosi di oggi sono prese o saltate. Memory ti avvisa quando ne restano 10, ogni mattina finché non compri la scatola nuova, e la sera ti dice se le medicine del giorno sono state prese.</p>
+    <p class="muted" id="memory-stato" style="font-weight: 700"></p>
+    <div id="memory-entra"><label for="memory-codice">Codice di Memory</label><input type="password" id="memory-codice" autocomplete="off" maxlength="200"></div>
+    <div class="pair">
+      <button class="btn" type="submit" id="memory-collega">Collega</button>
+      <button class="btn ghost" type="button" id="memory-scollega" hidden>Scollega</button>
+    </div>
+  </form>
 </section>
 
 <section id="imp-dottore" class="compatta" hidden>
@@ -780,7 +796,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   // --- memoria locale (solo su questo dispositivo) ---
   // Più persone sullo stesso telefono: ogni persona ha i suoi dati, con il suo prefisso («medicine.p…»).
   // La prima persona usa le chiavi di sempre, così i dati di prima restano dove sono. Per cambiare persona si ricarica la pagina.
-  var DEL_TELEFONO = ['profilo', 'profili', 'accesso', 'accesso-chiesto'];
+  var DEL_TELEFONO = ['profilo', 'profili', 'accesso', 'accesso-chiesto', 'memory-codice', 'memory-stato'];
   var PROFILO = ''; try { PROFILO = JSON.parse(localStorage.getItem('medicine.profilo') || '""') || ''; } catch (e) {}
   function chiaveDi(chiave, profilo) {
     var p = profilo === undefined ? PROFILO : profilo;
@@ -811,7 +827,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   // così anche il tasto «indietro» del telefono riporta alla schermata di prima.
   // pila: le schermate aperte dopo la prima pagina, nell'ordine.
   var SCHERMATE = ['casa', 'elenco', 'aggiungi', 'riepiloghi', 'dottore', 'salute', 'impostazioni',
-    'imp-accessi', 'imp-persone', 'imp-nome', 'imp-notifiche', 'imp-dottore', 'imp-famiglia', 'imp-copia', 'imp-consiglia', 'imp-guida'], pila = [];
+    'imp-accessi', 'imp-persone', 'imp-nome', 'imp-notifiche', 'imp-dottore', 'imp-famiglia', 'imp-copia', 'imp-memory', 'imp-consiglia', 'imp-guida'], pila = [];
   function mostra(nome) {
     if (SCHERMATE.indexOf(nome) < 0) nome = 'casa';
     SCHERMATE.forEach(function (s) { $(s).hidden = s !== nome; });
@@ -907,7 +923,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   function numero(n) { return String(Math.round(n * 100) / 100).replace('.', ','); }
   function quante(m, n) { return numero(n) + ' ' + (TIPI[m.tipo] || TIPI.altro)[n === 1 ? 0 : 1]; }
   function durata(m) { var g = bastano(m); return g <= 0 ? 'È finita' : g === 1 ? 'Basta per 1 giorno' : 'Basta per ' + g + ' giorni'; }
-  function salva() { scrivi('lista', medicine); disegna(); controllaDosi(); sincronizza(); }
+  function salva() { scrivi('lista', medicine); disegna(); controllaDosi(); sincronizza(); mandaMemoria(); }
 
   function disegna() {
     $('oggi').textContent = 'Oggi è ' + new Date().toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -1979,7 +1995,10 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
         principale: PROFILO ? PRINCIPALE : '', nomeAvvisi: profili().length > 1 ? etichettaDi(PROFILO) : '',
         // Le medicine partono solo da un telefono approvato.
         medicine: leggi('accesso', '') === 'approvato' ? medicine : [], giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate,
-        push: s && Notification.permission === 'granted' ? { endpoint: s.endpoint } : null }) });
+        push: s && Notification.permission === 'granted' ? { endpoint: s.endpoint } : null,
+        // Memory: così il servizio lo avvisa anche quando una dose si segna dall'orologio, senza aprire l'app
+        memory: conMemory ? leggi('memory-codice', '') : '', nomeMemory: etichettaDi(PROFILO),
+        esiti: diario.filter(function (e) { return e.g === g.giorno; }).reduce(function (o, e) { if (e.esito === 'presa' || e.esito === 'saltata') o[e.k] = e.esito; return o; }, {}) }) });
     })
       .then(function (r) {
         // Senza server (per esempio su un sito di soli file) l'app resta com'è e smette di chiedere.
@@ -2041,7 +2060,63 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
 
   // Un tasto della notifica ha segnato una dose: chiedo subito al server, così l'app si aggiorna.
   if ('serviceWorker' in navigator) navigator.serviceWorker.addEventListener('message', function (e) { if (e.data === 'aggiorna') sincronizza(); });
-  function giro() { disegnaPersone(); chiudiGiornata(); disegna(); controllaDosi(); sincronizza(); }
+  // --- Memory ---
+  // Solo nella copia dell'app di Primiano (non in quella che si consiglia agli altri, lemiemedicine.github.io).
+  // A ogni giro, se le scorte sono cambiate dall'ultimo invio, le manda a Memory: tutte le persone del telefono.
+  // (in prova sul PC parla con il Memory di prova)
+  var MEMORY = /^(localhost|127\.0\.0\.1)$/.test(location.hostname) ? 'http://127.0.0.1:4190/api/medicine' : 'https://memory-opbiv.netlify.app/api/medicine';
+  var conMemory = location.hostname !== 'lemiemedicine.github.io';
+  // Le dosi di oggi di una persona (solo le medicine con gli orari): presa, saltata, non segnata (ora passata) o da
+  // prendere (ora non ancora arrivata). Servono al riepilogo della sera di Memory.
+  function dosiDiOggi(id) {
+    var d = new Date(), oggi = iso(d), ora = oraAdesso(), g = leggi('dosi', {}, id), fatte = g.giorno === oggi ? g.fatte || [] : [];
+    var diarioOggi = leggi('diario', [], id).filter(function (e) { return e.g === oggi; }), fuori = [];
+    leggi('lista', [], id).forEach(function (m) {
+      if (!m.orari || !m.orari.length || !prende(m, d) || m.dal > oggi) return;
+      m.orari.forEach(function (o) {
+        if (m.dal === oggi && m.dalleOre && o < m.dalleOre) return;
+        var e = diarioOggi.filter(function (x) { return x.k === m.id + '|' + o; })[0];
+        fuori.push({ nome: m.nome, ora: o, esito: e ? e.esito : fatte.indexOf(m.id + '|' + o) >= 0 ? 'presa' : o <= ora ? 'non segnata' : 'da prendere' });
+      });
+    });
+    return { giorno: oggi, dosi: fuori.sort(function (a, b) { return a.ora.localeCompare(b.ora); }) };
+  }
+  function memoriaDati() {
+    return { persone: profili().map(function (id) {
+      return { nome: etichettaDi(id), oggi: dosiDiOggi(id), medicine: leggi('lista', [], id).map(function (m) {
+        return { nome: m.nome, restano: Math.round(restano(m) * 100) / 100, alGiorno: m.alGiorno, tipo: m.tipo };
+      }) };
+    }) };
+  }
+  function memoriaStato() { return leggi('memory-stato', {}); }
+  function disegnaMemoria() {
+    $('riga-memory').hidden = !conMemory;
+    var s = memoriaStato(), collegata = !!leggi('memory-codice', '');
+    var testo = !collegata ? 'Non collegata.' : s.errore ? s.errore : s.quando ? 'Collegata · ultimo invio ' + new Date(s.quando).toLocaleString('it-IT', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : 'Collegata.';
+    $('sub-memory').textContent = testo; $('memory-stato').textContent = testo;
+    $('memory-entra').hidden = collegata; $('memory-collega').hidden = collegata; $('memory-scollega').hidden = !collegata;
+  }
+  function mandaMemoria(sempre) {
+    var codice = leggi('memory-codice', '');
+    if (!conMemory || !codice) return;
+    var dati = JSON.stringify(memoriaDati()), s = memoriaStato();
+    if (!sempre && s.inviato === dati && !s.errore) return;
+    fetch(MEMORY, { method: 'POST', headers: { 'content-type': 'application/json', 'x-memory': codice }, body: dati })
+      .then(function (r) {
+        scrivi('memory-stato', r.ok ? { inviato: dati, quando: new Date().toISOString() } : { inviato: s.inviato, quando: s.quando, errore: r.status === 401 ? 'Memory non accetta il codice.' : 'Memory ha risposto male.' });
+      }, function () { scrivi('memory-stato', { inviato: s.inviato, quando: s.quando, errore: 'Memory non risponde: serve internet.' }); })
+      .then(disegnaMemoria);
+  }
+  $('memory-form').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var c = $('memory-codice').value.trim(); if (!c) return;
+    scrivi('memory-codice', c); scrivi('memory-stato', {}); $('memory-codice').value = ''; $('memory-codice').blur();
+    disegnaMemoria(); mandaMemoria(true); sincronizza();
+  });
+  $('memory-scollega').addEventListener('click', function () { scrivi('memory-codice', ''); scrivi('memory-stato', {}); disegnaMemoria(); sincronizza(); });
+  disegnaMemoria();
+
+  function giro() { disegnaPersone(); chiudiGiornata(); disegna(); controllaDosi(); sincronizza(); mandaMemoria(); }
   // All'avvio: se il permesso c'è già ma manca l'iscrizione (per esempio dopo un aggiornamento), la rifaccio da solo.
   disegnaNotifiche();
   if (notificheDisponibili() && Notification.permission === 'granted') iscrizione().then(function (s) { if (!s) iscriviti().catch(function () {}); });
