@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 56</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 58</p>
 </section>
 
 <!-- ELENCO -->
@@ -518,6 +518,8 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     <form class="panel" id="nome-form" hidden>
       <div><label for="nome-persona">Di chi sono queste medicine?</label>
         <input type="text" id="nome-persona" maxlength="30" autocomplete="off" placeholder="Per esempio: Mario"></div>
+      <div><label for="cognome-persona">Cognome <span class="muted">(facoltativo: compare nei messaggi per il dottore)</span></label>
+        <input type="text" id="cognome-persona" maxlength="40" autocomplete="off" placeholder="Per esempio: Rossi"></div>
       <div class="pair">
         <button class="btn" type="submit">Salva</button>
         <button class="btn ghost" type="button" id="nome-annulla">Annulla</button>
@@ -1119,7 +1121,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     var righe = medicine.filter(function (m) { return scatole[m.id] > 0; }).map(function (m) {
       return '• ' + m.nome + ': ' + (scatole[m.id] === 1 ? '1 scatola' : scatole[m.id] + ' scatole');
     });
-    return righe.length ? 'Buongiorno dottore, le chiedo la ricetta' + (nomePersona() ? ' per ' + nomePersona() : '') + ':\n' + righe.join('\n') + '\nGrazie.' : '';
+    return righe.length ? 'Buongiorno dottore, le chiedo la ricetta' + (nomeCompleto() ? ' per ' + nomeCompleto() : '') + ':\n' + righe.join('\n') + '\nGrazie.' : '';
   }
   $('ricetta-apri').addEventListener('click', function () {
     scatole = {}; medicine.forEach(function (m) { scatole[m.id] = proposta(m); });
@@ -1465,7 +1467,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   $('diario-chiudi').addEventListener('click', function () { $('diario').hidden = true; $('diario-apri').hidden = false; giorniAperti = []; inCorrezione = null; });
   $('diario-condividi').addEventListener('click', function () {
     // Per il dottore basta il riassunto di ogni giorno.
-    var righe = ['Diario delle dosi' + (nomePersona() ? ' di ' + nomePersona() : '') + ' (ultimi 14 giorni):'];
+    var righe = ['Diario delle dosi' + (nomeCompleto() ? ' di ' + nomeCompleto() : '') + ' (ultimi 14 giorni):'];
     giorniDiario().forEach(function (d) {
       var r = riassunto(d.voci);
       righe.push('• ' + etichettaGiorno(d.g) + (d.g === iso(new Date()) ? ' (finora)' : '') + ': ' + r.charAt(0).toLowerCase() + r.slice(1));
@@ -1511,7 +1513,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   });
   $('note-condividi').addEventListener('click', function () {
     var righe = note.filter(function (n) { return !n.fatta; }).sort(function (a, b) { return a.id - b.id; }).map(function (n) { return '• ' + n.testo; });
-    condividi('Da chiedere al dottore', 'Da chiedere al dottore' + (nomePersona() ? ' (' + nomePersona() + ')' : '') + ':\n' + righe.join('\n'));
+    condividi('Da chiedere al dottore', 'Da chiedere al dottore' + (nomeCompleto() ? ' (' + nomeCompleto() + ')' : '') + ':\n' + righe.join('\n'));
   });
   $('note-pulisci').addEventListener('click', function () {
     var tolte = note.filter(function (n) { return n.fatta; });
@@ -1594,7 +1596,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
       righe.push('', NOMI_MISURA[tipo] + ':');
       queste.forEach(function (m) { righe.push('• ' + giornoBreve(m.giorno) + ' alle ' + m.ora + ': ' + valoreMisura(m)); });
     });
-    return 'Buongiorno dottore, le mando le misure' + (nomePersona() ? ' di ' + nomePersona() : '') + ' degli ultimi 30 giorni.\n' + righe.join('\n');
+    return 'Buongiorno dottore, le mando le misure' + (nomeCompleto() ? ' di ' + nomeCompleto() : '') + ' degli ultimi 30 giorni.\n' + righe.join('\n');
   }
   // Apre il riquadro per una misura nuova del tipo scelto, oppure per correggere una misura già scritta.
   function apriMisura(tipo, m) {
@@ -1661,7 +1663,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   }
   $('copia-salva').addEventListener('click', function () {
     var testo = JSON.stringify({ app: 'le-mie-medicine', versione: 1, salvata: iso(new Date()), lista: medicine, dottore: dottore(),
-      famiglia: numeroFamiglia(), diario: diario, note: note, misure: misure, persona: nomePersona() }, null, 1);
+      famiglia: numeroFamiglia(), diario: diario, note: note, misure: misure, persona: nomePersona(), cognome: leggi('cognome', '') }, null, 1);
     // Sempre lo stesso nome per ogni persona, senza data: salvando nello stesso posto il telefono chiede «Sostituisci?»
     // e resta un file solo. La data è scritta dentro la copia. Con più persone, chi non ha nome usa «Persona 2» e così via.
     var chi = (profili().length > 1 ? etichettaDi(PROFILO) : nomePersona()).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -1700,6 +1702,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     diario = Array.isArray(d.diario) ? d.diario : []; scrivi('diario', diario);
     if (Array.isArray(d.note)) { note = d.note; salvaNote(); }
     if (Array.isArray(d.misure)) { misure = d.misure; salvaMisure(); }
+    if (typeof d.cognome === 'string') scrivi('cognome', d.cognome);
     if (typeof d.persona === 'string') { scrivi('persona', d.persona); aggiornaNome(); }
     daRipristinare = null; $('copia-conferma').hidden = true;
     salva(); avviso('Copia ripristinata: ' + (medicine.length === 1 ? '1 medicina.' : medicine.length + ' medicine.'));
@@ -1709,22 +1712,24 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   // --- di chi sono le medicine ---
   // Con il nome, il titolo diventa «Le medicine di …» e il nome compare nei messaggi che escono dall'app.
   function nomePersona() { return leggi('persona', ''); }
+  // Per il dottore: nome e cognome. Il titolo e le notifiche usano solo il nome.
+  function nomeCompleto() { return [nomePersona(), leggi('cognome', '')].filter(Boolean).join(' '); }
   function titoloApp() { return nomePersona() ? 'Le medicine di ' + nomePersona() : 'Le mie medicine'; }
   function aggiornaNome() {
     $('titolo').textContent = titoloApp(); document.title = titoloApp();
     $('nome-cambia').textContent = nomePersona() ? 'Cambia nome' : 'Scrivi il nome di chi le prende';
-    $('nome-stato').textContent = nomePersona() ? 'Il titolo è «' + titoloApp() + '». Il nome compare anche nei messaggi per il dottore e la famiglia.'
+    $('nome-stato').textContent = nomePersona() ? 'Il titolo è «' + titoloApp() + '».' + (leggi('cognome', '') ? ' Per il dottore: «' + nomeCompleto() + '».' : ' Il nome compare anche nei messaggi per il dottore e la famiglia.')
       : 'Con il nome il titolo diventa «Le medicine di …», e il nome compare nei messaggi per il dottore e la famiglia.';
   }
   $('nome-cambia').addEventListener('click', function () {
     $('nome-form').hidden = false; $('nome-cambia').hidden = true;
-    $('nome-persona').value = nomePersona(); $('nome-persona').focus();
+    $('nome-persona').value = nomePersona(); $('cognome-persona').value = leggi('cognome', ''); $('nome-persona').focus();
   });
   $('nome-annulla').addEventListener('click', function () { $('nome-form').hidden = true; $('nome-cambia').hidden = false; });
   $('nome-form').addEventListener('submit', function (e) {
     e.preventDefault();
     var nome = $('nome-persona').value.trim().replace(/\s+/g, ' ');
-    scrivi('persona', nome);
+    scrivi('persona', nome); scrivi('cognome', $('cognome-persona').value.trim().replace(/\s+/g, ' '));
     $('nome-form').hidden = true; $('nome-cambia').hidden = false; aggiornaNome(); disegna();
     avviso(nome ? 'Fatto: ora sono «Le medicine di ' + nome + '».' : 'Nome tolto.');
   });
@@ -1993,6 +1998,8 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     iscrizione().then(function (s) {
       return fetch(SERVIZIO + 'api/stato', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dispositivo: DISPOSITIVO, invito: INVITO,
         principale: PROFILO ? PRINCIPALE : '', nomeAvvisi: profili().length > 1 ? etichettaDi(PROFILO) : '',
+        // Dalla prima persona: chi c'è davvero su questo telefono. Il server cancella le persone tolte nel frattempo.
+        persone: PROFILO ? undefined : profili().filter(Boolean).map(function (id) { return leggi('dispositivo', '', id); }).filter(Boolean),
         // Le medicine partono solo da un telefono approvato.
         medicine: leggi('accesso', '') === 'approvato' ? medicine : [], giornata: { giorno: g.giorno, fatte: g.fatte }, fuso: new Date().getTimezoneOffset(), ricevute: applicate,
         push: s && Notification.permission === 'granted' ? { endpoint: s.endpoint } : null,
