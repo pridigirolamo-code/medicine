@@ -264,7 +264,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 58</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 59</p>
 </section>
 
 <!-- ELENCO -->
@@ -1251,10 +1251,11 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
   // Ogni dose finisce nel diario: presa, saltata (di proposito) o dimenticata (giorno finito senza segnarla).
   // Tengo gli ultimi 60 giorni.
   var diario = leggi('diario', []);
-  function annota(giorno, m, ora, esito) {
+  // alle: l'ora in cui la dose è stata segnata (se arriva dal server, quella del tocco sull'orologio o sulla notifica).
+  function annota(giorno, m, ora, esito, alle) {
     var chiave = m.id + '|' + ora;
     diario = diario.filter(function (e) { return !(e.g === giorno && e.k === chiave); });
-    diario.push({ g: giorno, k: chiave, nome: m.nome, ora: ora, esito: esito, alle: esito === 'dimenticata' ? '' : oraAdesso() });
+    diario.push({ g: giorno, k: chiave, nome: m.nome, ora: ora, esito: esito, alle: esito === 'dimenticata' ? '' : alle || oraAdesso() });
     var limite = iso(new Date(Date.now() - 60 * GIORNO));
     diario = diario.filter(function (e) { return e.g >= limite; });
     scrivi('diario', diario);
@@ -2039,7 +2040,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
           var esito = e.esito === 'saltata' ? 'saltata' : 'presa';
           if (m && m.orari.length && esito === 'presa') m.rimaste = Math.max(0, m.rimaste - m.alGiorno / m.orari.length);
           if (e.giorno === oggi.giorno && oggi.fatte.indexOf(e.chiave) < 0) { oggi.fatte.push(e.chiave); scrivi('dosi', oggi); }
-          if (m) annota(e.giorno, m, e.chiave.split('|')[1], esito);
+          if (m) annota(e.giorno, m, e.chiave.split('|')[1], esito, e.alle);
         });
         applicate = applicate.slice(-100); scrivi('applicate', applicate);
         salva();
