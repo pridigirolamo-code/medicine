@@ -227,6 +227,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     <p id="scorte-testo"></p>
     <button class="btn ghost" type="button" id="scorte-ricetta">Prepara la ricetta per il dottore</button>
     <button class="btn ghost" type="button" id="scorte-segna">Ho già chiesto la ricetta</button>
+    <button class="link-piccolo" type="button" id="scorte-non-chiesta" hidden style="align-self: flex-start">La ricetta non l'ho ancora chiesta</button>
   </div>
 
   <div class="panel warn" id="accessi-avviso" role="status" hidden>
@@ -264,7 +265,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     </button>
   </div>
 
-  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 59</p>
+  <p class="foot">Per dosi e orari segui sempre le indicazioni del dottore o del farmacista.<br>Versione 60</p>
 </section>
 
 <!-- ELENCO -->
@@ -945,6 +946,13 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
       var d = document.createElement('div');
       d.textContent = (r === 1 ? 'Resta ' : 'Restano ') + quante(m, r) + ' · ' + durata(m).toLowerCase() + (m.richiesta ? ' · ricetta richiesta il ' + giornoBreve(m.richiesta) : '');
       corpo.appendChild(n); corpo.appendChild(o); corpo.appendChild(d);
+      // Ricetta segnata come richiesta per sbaglio (per esempio toccando WhatsApp senza poi inviare): si toglie da qui.
+      if (m.richiesta) {
+        var no = document.createElement('button'); no.type = 'button'; no.className = 'link-piccolo'; no.textContent = 'Non l\'ho chiesta';
+        no.setAttribute('aria-label', 'Ricetta di ' + m.nome + ' non ancora chiesta');
+        no.addEventListener('click', function () { nonChiesta([m]); });
+        corpo.appendChild(no);
+      }
       // Quante ce ne sono in una scatola: si vede subito se il numero salvato è giusto.
       var sc = document.createElement('div'); sc.className = 'muted';
       sc.textContent = m.scatola ? 'Scatola da ' + quante(m, m.scatola) : 'Scatola: numero non indicato (tocca Modifica)';
@@ -993,6 +1001,7 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
       (daRitirare.length ? (poche.length ? ' ' : '') + 'Ricetta richiesta da qualche giorno per ' + daRitirare.map(function (m) { return m.nome; }).join(', ') +
         ': ricordati di passare in farmacia, poi registra le scatole con «Scatola».' : '');
     $('scorte-ricetta').hidden = !daChiedere.length; $('scorte-segna').hidden = !daChiedere.length;
+    $('scorte-non-chiesta').hidden = !daRitirare.length;
     $('riass-medicine').textContent = !medicine.length ? 'Non hai ancora segnato nessuna medicina.'
       : (medicine.length === 1 ? '1 medicina' : medicine.length + ' medicine') + (poche.length === 0 ? ': le scorte bastano.'
         : poche.length === 1 ? ': 1 sta per finire.' : ': ' + poche.length + ' stanno per finire.');
@@ -1135,6 +1144,16 @@ html:not(.android) .solo-android, html.android .solo-ios { display: none }
     segnate.forEach(function (m) { m.richiesta = iso(new Date()); });
     salva();
     avviso('Segnato: ricetta già richiesta.', function () { segnate.forEach(function (m) { delete m.richiesta; }); salva(); });
+  });
+  // Togliere il segno «ricetta richiesta» messo per sbaglio: la medicina torna tra quelle da chiedere.
+  function nonChiesta(lista) {
+    var prima = lista.map(function (m) { return m.richiesta; });
+    lista.forEach(function (m) { delete m.richiesta; }); salva();
+    avviso(lista.length === 1 ? 'Tolto: ricetta di ' + lista[0].nome + ' non ancora chiesta.' : 'Tolto: ricette non ancora chieste.',
+      function () { lista.forEach(function (m, i) { m.richiesta = prima[i]; }); salva(); });
+  }
+  $('scorte-non-chiesta').addEventListener('click', function () {
+    nonChiesta(medicine.filter(function (m) { return m.richiesta && giorniDa(m.richiesta) >= GIORNI_FARMACIA; }));
   });
   // Segno la ricetta come chiesta: finché non arrivano le scatole nuove non la ripropongo in prima pagina.
   function segnaChieste(chieste) {
